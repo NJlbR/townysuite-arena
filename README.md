@@ -18,3 +18,7 @@ View your app in AI Studio: https://ai.studio/apps/110c4226-2293-44ae-b73a-32731
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## GitHub Pages
+
+The site is deployed from `dist/` by `.github/workflows/deploy-pages.yml`. In the repository settings, select **Settings → Pages → Build and deployment → Source → GitHub Actions**. The workflow builds the project with the `/townysuite-arena/` base path and deploys it after changes reach `main`.

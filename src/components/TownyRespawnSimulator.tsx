@@ -494,7 +494,7 @@ export const TownyRespawnSimulator: React.FC = () => {
               >
                 {/* Realistic Photorealistic Minecraft Terrain Layer (NO chunk grid lines!) */}
                 <img
-                  src="/bluemap_realistic_terrain.jpg"
+                  src={`${import.meta.env.BASE_URL}bluemap_realistic_terrain.jpg`}
                   alt="Realistic BlueMap Minecraft World"
                   className={`w-full h-full object-cover transition-all duration-500 pointer-events-none ${
                     timeOfDay === 'sunset' ? 'brightness-90 sepia-[0.25] hue-rotate-[-10deg]' :

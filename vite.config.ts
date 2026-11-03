@@ -4,7 +4,12 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const isGitHubPages = process.env.GITHUB_ACTIONS === 'true';
+
   return {
+    // GitHub Pages serves this project below /townysuite-arena/, not at the domain root.
+    // Keep local Vite URLs rooted normally while emitting correct production asset URLs.
+    base: isGitHubPages ? '/townysuite-arena/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

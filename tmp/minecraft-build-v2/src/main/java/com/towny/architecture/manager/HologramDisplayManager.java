@@ -711,6 +711,28 @@ public class HologramDisplayManager {
         }
     }
 
+    /**
+     * Returns the occupied block cells of all active display entities in a world.
+     * BlockDisplay entities are not blocks in Bukkit's block map, so rendering and
+     * visibility checks must explicitly treat their cells as opaque.
+     */
+    public Set<String> getOpaqueDisplayCellKeys(World world) {
+        if (world == null) return Collections.emptySet();
+        Set<String> cells = new HashSet<>();
+        for (Map<String, BlockDisplay> buildingDisplays : activeDisplays.values()) {
+            for (BlockDisplay display : buildingDisplays.values()) {
+                if (display == null || !display.isValid() || display.isDead() || display.getWorld() != world) continue;
+                Location location = display.getLocation();
+                cells.add(cellKey(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
+            }
+        }
+        return cells;
+    }
+
+    private static String cellKey(int x, int y, int z) {
+        return x + "," + y + "," + z;
+    }
+
     public NamespacedKey getHologramKey() { return hologramKey; }
     public NamespacedKey getBlockCoordKey() { return blockCoordKey; }
 }
