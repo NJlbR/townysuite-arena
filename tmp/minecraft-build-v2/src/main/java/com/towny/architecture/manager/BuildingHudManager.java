@@ -267,7 +267,12 @@ public class BuildingHudManager {
     private static final Particle.DustOptions DUST_HOLOGRAM = new Particle.DustOptions(Color.fromRGB(60, 190, 239), 0.85f);
     private static final Particle.DustOptions DUST_OBSTACLE = new Particle.DustOptions(Color.fromRGB(235, 75, 75), 0.85f);
 
-    private byte getCellType(World world, ActiveBuilding bld, BuildingSchematic schem, int wx, int wy, int wz) {
+    private static String cellKey(int x, int y, int z) {
+        return x + "," + y + "," + z;
+    }
+
+    private byte getCellType(World world, ActiveBuilding bld, BuildingSchematic schem,
+                             int wx, int wy, int wz, Set<String> opaqueDisplayCells) {
         if (bld == null || schem == null || world == null) return TYPE_AIR;
 
         int layerWorldY = bld.getOriginY() + bld.getCurrentLayer();
@@ -278,171 +283,194 @@ public class BuildingHudManager {
         int[] unrot = BuildingManager.unrotateRelativeCoords(rx, rz, bld.getRotationDeg(), schem.getWidthX(), schem.getLengthZ());
         int dx = unrot[0];
         int dz = unrot[1];
-
-        boolean insideFootprint = (dx >= 0 && dx < schem.getWidthX() && dz >= 0 && dz < schem.getLengthZ());
+        boolean insideFootprint = dx >= 0 && dx < schem.getWidthX() && dz >= 0 && dz < schem.getLengthZ();
 
         org.bukkit.block.Block block = world.getBlockAt(wx, wy, wz);
         Material mat = block.getType();
-        boolean isSolidPhysical = !mat.isAir() && mat != Material.WATER && mat != Material.LAVA;
+        boolean physicalOccupancy = !mat.isAir() && mat != Material.WATER && mat != Material.LAVA;
+        boolean displayOccupancy = opaqueDisplayCells.contains(cellKey(wx, wy, wz));
 
-        if (!isSolidPhysical) {
+        if (!physicalOccupancy) {
+            if (displayOccupancy) {
+                // A display entity occupies its whole logical cell regardless of the
+                // rendered block's material or transparency.
+                if (wy == layerWorldY && insideFootprint) {
+                    SchematicBlock schematicBlock = schem.getBlock(dx, dy, dz);
+                    if (schematicBlock != null && !bld.isBlockCompleted(dx, dy, dz)) return TYPE_HOLOGRAM;
+                }
+                return TYPE_OBSTACLE;
+            }
             if (wy == layerWorldY && insideFootprint) {
                 SchematicBlock sb = schem.getBlock(dx, dy, dz);
-                if (sb != null && !bld.isBlockCompleted(dx, dy, dz)) {
-                    return TYPE_HOLOGRAM;
-                }
+                if (sb != null && !bld.isBlockCompleted(dx, dy, dz)) return TYPE_HOLOGRAM;
             }
             return TYPE_AIR;
-        } else {
-            if (wy < layerWorldY) {
-                return TYPE_OTHER_LAYER;
-            } else if (wy > layerWorldY) {
-                return TYPE_OBSTACLE;
-            } else {
-                if (insideFootprint) {
-                    SchematicBlock sb = schem.getBlock(dx, dy, dz);
-                    if (sb != null) {
-                        if (bld.isBlockCompleted(dx, dy, dz) || BuildingManager.isMaterialMatch(mat, sb.getMaterial())) {
-                            return TYPE_OTHER_LAYER;
-                        } else {
-                            return TYPE_OBSTACLE;
-                        }
-                    } else {
-                        return TYPE_OBSTACLE;
-                    }
-                } else {
-                    return TYPE_OBSTACLE;
+        }
+
+        if (wy < layerWorldY) return TYPE_OTHER_LAYER;
+        if (wy > layerWorldY) return TYPE_OBSTACLE;
+        if (insideFootprint) {
+            SchematicBlock sb = schem.getBlock(dx, dy, dz);
+            if (sb != null) {
+                if (bld.isBlockCompleted(dx, dy, dz) || BuildingManager.isMaterialMatch(mat, sb.getMaterial())) {
+                    return TYPE_OTHER_LAYER;
                 }
+                return TYPE_OBSTACLE;
+            }
+        }
+        return TYPE_OBSTACLE;
+    }
+
+    private boolean isAirCell(byte type) {
+        return type == TYPE_AIR;
+    }
+
+    private boolean isOpaqueForWireframe(World world, int x, int y, int z, Set<String> opaqueDisplayCells) {
+        if (opaqueDisplayCells.contains(cellKey(x, y, z))) return true;
+        if (y < world.getMinHeight() || y >= world.getMaxHeight()) return false;
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) return true; // Unknown geometry is conservatively occluding.
+        Material material = world.getBlockAt(x, y, z).getType();
+        return !material.isAir() && material != Material.WATER && material != Material.LAVA;
+    }
+
+    /** True only when no opaque block/display lies between the eye and this point. */
+    private boolean hasWireframeLineOfSight(Player player, World world, double x, double y, double z,
+                                            int sourceX, int sourceY, int sourceZ,
+                                            Set<String> opaqueDisplayCells) {
+        Location eye = player.getEyeLocation();
+        double dx = x - eye.getX();
+        double dy = y - eye.getY();
+        double dz = z - eye.getZ();
+        double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (distance > 64.0) return false;
+        if (distance < 0.001) return true;
+        int bx = (int) Math.floor(eye.getX());
+        int by = (int) Math.floor(eye.getY());
+        int bz = (int) Math.floor(eye.getZ());
+        double invX = dx == 0.0 ? Double.POSITIVE_INFINITY : Math.abs(1.0 / dx);
+        double invY = dy == 0.0 ? Double.POSITIVE_INFINITY : Math.abs(1.0 / dy);
+        double invZ = dz == 0.0 ? Double.POSITIVE_INFINITY : Math.abs(1.0 / dz);
+        int stepX = Double.compare(dx, 0.0);
+        int stepY = Double.compare(dy, 0.0);
+        int stepZ = Double.compare(dz, 0.0);
+        double maxX = dx == 0.0 ? Double.POSITIVE_INFINITY : ((stepX > 0 ? bx + 1.0 - eye.getX() : eye.getX() - bx) * invX);
+        double maxY = dy == 0.0 ? Double.POSITIVE_INFINITY : ((stepY > 0 ? by + 1.0 - eye.getY() : eye.getY() - by) * invY);
+        double maxZ = dz == 0.0 ? Double.POSITIVE_INFINITY : ((stepZ > 0 ? bz + 1.0 - eye.getZ() : eye.getZ() - bz) * invZ);
+
+        // Amanatides-Woo voxel traversal: unlike coarse ray sampling, this cannot
+        // skip a one-block hologram even on a shallow/diagonal viewing angle.
+        for (int traversed = 0; traversed < 512; traversed++) {
+            double nextT;
+            if (maxX <= maxY && maxX <= maxZ) {
+                bx += stepX;
+                nextT = maxX;
+                maxX += invX;
+            } else if (maxY <= maxZ) {
+                by += stepY;
+                nextT = maxY;
+                maxY += invY;
+            } else {
+                bz += stepZ;
+                nextT = maxZ;
+                maxZ += invZ;
+            }
+            if (nextT >= 1.0) return true;
+            // The target block itself is the surface being outlined, not an occluder.
+            if (bx == sourceX && by == sourceY && bz == sourceZ) continue;
+            if (isOpaqueForWireframe(world, bx, by, bz, opaqueDisplayCells)) return false;
+        }
+        return false;
+    }
+
+    private String particlePointKey(double x, double y, double z) {
+        return Math.round(x * 10000.0) + "," + Math.round(y * 10000.0) + "," + Math.round(z * 10000.0);
+    }
+
+    private void drawVisibleEdge(Player player, World world, int sourceX, int sourceY, int sourceZ,
+                                 double[] a, double[] b, Particle.DustOptions dust,
+                                 Set<String> drawnParticlePoints, Set<String> opaqueDisplayCells) {
+        double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        int count = Math.max(1, (int) Math.ceil(length / 0.18));
+        for (int i = 0; i <= count; i++) {
+            double t = (double) i / count;
+            double x = a[0] + dx * t;
+            double y = a[1] + dy * t;
+            double z = a[2] + dz * t;
+            String pointKey = particlePointKey(x, y, z);
+            if (drawnParticlePoints.contains(pointKey)) continue;
+            if (hasWireframeLineOfSight(player, world, x, y, z, sourceX, sourceY, sourceZ, opaqueDisplayCells)) {
+                drawnParticlePoints.add(pointKey);
+                player.spawnParticle(dustParticle, x, y, z, 0, 0.0, 0.0, 0.0, 0.0, dust);
             }
         }
     }
 
-    private boolean isAirFace(byte a, byte b, byte targetType) {
-        return (a == TYPE_AIR && b == targetType) || (b == TYPE_AIR && a == targetType);
-    }
-
-    private Particle.DustOptions getEdgeColor(byte t1, byte t2, byte t3, byte t4) {
-        boolean hasObstacleAirFace = isAirFace(t1, t3, TYPE_OBSTACLE) ||
-                                     isAirFace(t2, t4, TYPE_OBSTACLE) ||
-                                     isAirFace(t1, t2, TYPE_OBSTACLE) ||
-                                     isAirFace(t3, t4, TYPE_OBSTACLE);
-
-        boolean hasHologramAirFace = isAirFace(t1, t3, TYPE_HOLOGRAM) ||
-                                     isAirFace(t2, t4, TYPE_HOLOGRAM) ||
-                                     isAirFace(t1, t2, TYPE_HOLOGRAM) ||
-                                     isAirFace(t3, t4, TYPE_HOLOGRAM);
-
-        if (hasObstacleAirFace) {
-            return DUST_OBSTACLE;
-        } else if (hasHologramAirFace) {
-            return DUST_HOLOGRAM;
-        }
-        return null;
-    }
-
-    private void drawLineSegment(Player player, World world, double x1, double y1, double z1, double x2, double y2, double z2, Particle.DustOptions dust) {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double dz = z2 - z1;
-        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (length < 0.001) return;
-
-        double step = 0.25;
-        int count = (int) Math.round(length / step);
-        if (count < 1) count = 1;
-
-        for (int i = 0; i <= count; i++) {
-            double t = (double) i / count;
-            double px = x1 + dx * t;
-            double py = y1 + dy * t;
-            double pz = z1 + dz * t;
-            player.spawnParticle(dustParticle, px, py, pz, 0, 0.0, 0.0, 0.0, 0.0, dust);
-        }
-    }
-
+    /**
+     * Renders only edges belonging to exposed, camera-facing faces. This is a
+     * geometric face/visibility calculation, not a fixed top-plane wireframe.
+     */
     private void renderLayerWireframes(Player player, World world, ActiveBuilding bld, BuildingSchematic schem) {
         if (bld.getStatus() != ActiveBuilding.Status.CONSTRUCTING) return;
 
-        int effW = schem.getWidthX();
-        int effL = schem.getLengthZ();
+        int effectiveWidth = schem.getWidthX();
+        int effectiveLength = schem.getLengthZ();
         if (bld.getRotationDeg() == 90 || bld.getRotationDeg() == 270) {
-            effW = schem.getLengthZ();
-            effL = schem.getWidthX();
+            effectiveWidth = schem.getLengthZ();
+            effectiveLength = schem.getWidthX();
         }
 
         int minX = bld.getOriginX();
-        int maxX = bld.getOriginX() + effW - 1;
+        int maxX = minX + effectiveWidth - 1;
         int minZ = bld.getOriginZ();
-        int maxZ = bld.getOriginZ() + effL - 1;
-        int Y = bld.getOriginY() + bld.getCurrentLayer();
+        int maxZ = minZ + effectiveLength - 1;
+        int layerY = bld.getOriginY() + bld.getCurrentLayer();
+        Set<String> opaqueDisplayCells = plugin.getHologramDisplayManager().getOpaqueDisplayCellKeys(world);
+        Location eye = player.getEyeLocation();
+        Set<String> drawnParticlePoints = new HashSet<>();
 
-        // Use top elevation (+1.015) for top face open-air contact
-        double yPillarStart = Y + 0.85;
-        double yTop = Y + 1.015;
-
-        // 1. Top Horizontal X edges at Y + 1 (ON TOP of layer Y, contacting sky/air)
-        for (int z = minZ; z <= maxZ + 1; z++) {
-            int startX = -1;
-            Particle.DustOptions currentDust = null;
-
-            for (int x = minX; x <= maxX; x++) {
-                byte t1 = getCellType(world, bld, schem, x, Y, z - 1);
-                byte t2 = getCellType(world, bld, schem, x, Y, z);
-                byte t3 = getCellType(world, bld, schem, x, Y + 1, z - 1);
-                byte t4 = getCellType(world, bld, schem, x, Y + 1, z);
-
-                Particle.DustOptions edgeDust = getEdgeColor(t1, t2, t3, t4);
-
-                if (edgeDust != currentDust) {
-                    if (currentDust != null && startX != -1) {
-                        drawLineSegment(player, world, startX, yTop, z, x, yTop, z, currentDust);
-                    }
-                    startX = x;
-                    currentDust = edgeDust;
-                }
-            }
-            if (currentDust != null && startX != -1) {
-                drawLineSegment(player, world, startX, yTop, z, maxX + 1, yTop, z, currentDust);
-            }
-        }
-
-        // 2. Top Horizontal Z edges at Y + 1 (ON TOP of layer Y, contacting sky/air)
-        for (int x = minX; x <= maxX + 1; x++) {
-            int startZ = -1;
-            Particle.DustOptions currentDust = null;
-
+        // Each voxel contributes only faces whose neighbor is genuinely air.
+        // A BlockDisplay cell is occupancy even when Bukkit reports AIR beneath it.
+        for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                byte t1 = getCellType(world, bld, schem, x - 1, Y, z);
-                byte t2 = getCellType(world, bld, schem, x, Y, z);
-                byte t3 = getCellType(world, bld, schem, x - 1, Y + 1, z);
-                byte t4 = getCellType(world, bld, schem, x, Y + 1, z);
+                byte cellType = getCellType(world, bld, schem, x, layerY, z, opaqueDisplayCells);
+                if (cellType != TYPE_HOLOGRAM && cellType != TYPE_OBSTACLE) continue;
+                Particle.DustOptions dust = cellType == TYPE_OBSTACLE ? DUST_OBSTACLE : DUST_HOLOGRAM;
 
-                Particle.DustOptions edgeDust = getEdgeColor(t1, t2, t3, t4);
-
-                if (edgeDust != currentDust) {
-                    if (currentDust != null && startZ != -1) {
-                        drawLineSegment(player, world, x, yTop, startZ, x, yTop, z, currentDust);
+                for (int face = 0; face < 6; face++) {
+                    int nx = 0, ny = 0, nz = 0;
+                    double[][] vertices;
+                    double fx = x + 0.5, fy = layerY + 0.5, fz = z + 0.5;
+                    switch (face) {
+                        case 0: // +X
+                            nx = 1; fx = x + 1.0;
+                            vertices = new double[][]{{x+1,layerY,z},{x+1,layerY+1,z},{x+1,layerY+1,z+1},{x+1,layerY,z+1}}; break;
+                        case 1: // -X
+                            nx = -1; fx = x;
+                            vertices = new double[][]{{x,layerY,z},{x,layerY,z+1},{x,layerY+1,z+1},{x,layerY+1,z}}; break;
+                        case 2: // +Y
+                            ny = 1; fy = layerY + 1.0;
+                            vertices = new double[][]{{x,layerY+1,z},{x,layerY+1,z+1},{x+1,layerY+1,z+1},{x+1,layerY+1,z}}; break;
+                        case 3: // -Y
+                            ny = -1; fy = layerY;
+                            vertices = new double[][]{{x,layerY,z},{x+1,layerY,z},{x+1,layerY,z+1},{x,layerY,z+1}}; break;
+                        case 4: // +Z
+                            nz = 1; fz = z + 1.0;
+                            vertices = new double[][]{{x,layerY,z+1},{x+1,layerY,z+1},{x+1,layerY+1,z+1},{x,layerY+1,z+1}}; break;
+                        default: // -Z
+                            nz = -1; fz = z;
+                            vertices = new double[][]{{x,layerY,z},{x,layerY+1,z},{x+1,layerY+1,z},{x+1,layerY,z}}; break;
                     }
-                    startZ = z;
-                    currentDust = edgeDust;
-                }
-            }
-            if (currentDust != null && startZ != -1) {
-                drawLineSegment(player, world, x, yTop, startZ, x, yTop, maxZ + 1, currentDust);
-            }
-        }
 
-        // 3. Vertical Y pillar edges from Y + 0.5 to Y + 1 (UPPER SIDES ONLY, avoiding bottom face)
-        for (int x = minX; x <= maxX + 1; x++) {
-            for (int z = minZ; z <= maxZ + 1; z++) {
-                byte t1 = getCellType(world, bld, schem, x - 1, Y, z - 1);
-                byte t2 = getCellType(world, bld, schem, x, Y, z - 1);
-                byte t3 = getCellType(world, bld, schem, x - 1, Y, z);
-                byte t4 = getCellType(world, bld, schem, x, Y, z);
+                    byte neighborType = getCellType(world, bld, schem, x + nx, layerY + ny, z + nz, opaqueDisplayCells);
+                    if (!isAirCell(neighborType)) continue;
+                    double facing = (eye.getX() - fx) * nx + (eye.getY() - fy) * ny + (eye.getZ() - fz) * nz;
+                    if (facing <= 0.0001) continue;
 
-                Particle.DustOptions edgeDust = getEdgeColor(t1, t2, t3, t4);
-                if (edgeDust != null) {
-                    drawLineSegment(player, world, x, yPillarStart, z, x, yTop, z, edgeDust);
+                    for (int edge = 0; edge < 4; edge++) {
+                        drawVisibleEdge(player, world, x, layerY, z,
+                                vertices[edge], vertices[(edge + 1) % 4], dust, drawnParticlePoints, opaqueDisplayCells);
+                    }
                 }
             }
         }

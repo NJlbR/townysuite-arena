@@ -11,6 +11,11 @@ import { SUITE_ALL_PLUGINS_ZIP_BASE64 } from '../data/suiteZipBase64';
 /**
  * Converts a Base64 string to a Uint8Array binary buffer.
  */
+function publicAssetUrl(path: string): string {
+  const relativePath = path.startsWith('/') ? path.slice(1) : path;
+  return `${import.meta.env.BASE_URL}${relativePath}`;
+}
+
 function base64ToUint8Array(base64: string): Uint8Array {
   const binaryString = window.atob(base64);
   const len = binaryString.length;
@@ -44,7 +49,7 @@ export function downloadCannonBbmodel(filename = CANNON_METADATA.fileBbmodelName
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Cannon .bbmodel download:', err);
-    window.location.href = `/models/${filename}`;
+    window.location.href = publicAssetUrl(`models/${filename}`);
     return false;
   }
 }
@@ -72,7 +77,7 @@ export function downloadCannonJson(filename = CANNON_METADATA.fileJsonName): boo
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Cannon .json download:', err);
-    window.location.href = `/models/${filename}`;
+    window.location.href = publicAssetUrl(`models/${filename}`);
     return false;
   }
 }
@@ -100,7 +105,7 @@ export function downloadCannonCustomJson(filename = CANNON_METADATA.fileCustomJs
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Cannon custom .json download:', err);
-    window.location.href = `/models/${filename}`;
+    window.location.href = publicAssetUrl(`models/${filename}`);
     return false;
   }
 }
@@ -128,7 +133,7 @@ export function downloadCannonWoodPng(filename = CANNON_METADATA.fileWoodPngName
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Cannon wood PNG download:', err);
-    window.location.href = `/models/${filename}`;
+    window.location.href = publicAssetUrl(`models/${filename}`);
     return false;
   }
 }
@@ -156,7 +161,7 @@ export function downloadCannonMetalPng(filename = CANNON_METADATA.fileMetalPngNa
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Cannon metal PNG download:', err);
-    window.location.href = `/models/${filename}`;
+    window.location.href = publicAssetUrl(`models/${filename}`);
     return false;
   }
 }
@@ -184,7 +189,7 @@ export function downloadCannonVanillaJson(filename = CANNON_METADATA.fileVanilla
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Cannon vanilla .json download:', err);
-    window.location.href = `/models/${filename}`;
+    window.location.href = publicAssetUrl(`models/${filename}`);
     return false;
   }
 }
@@ -214,7 +219,7 @@ export function downloadCannonRp(filename = CANNON_METADATA.fileRpName): boolean
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Cannon RP download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -242,7 +247,7 @@ export function downloadTownySiegesJar(filename = TOWNY_SIEGES_METADATA.jarFileN
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory TownySieges JAR download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -270,7 +275,7 @@ export function downloadTownySiegesBundle(filename = TOWNY_SIEGES_METADATA.bundl
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory TownySieges bundle download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -298,7 +303,7 @@ export function downloadTownyRespawnJar(filename = TOWNY_RESPAWN_METADATA.jarFil
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory TownyRespawn JAR download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -326,7 +331,7 @@ export function downloadTownyRespawnBundle(filename = TOWNY_RESPAWN_METADATA.bun
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory TownyRespawn bundle download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -354,7 +359,7 @@ export function downloadUnblockerJar(filename = UNBLOCKER_METADATA.jarFileName):
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Unblocker JAR download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -382,7 +387,7 @@ export function downloadUnblockerBundle(filename = UNBLOCKER_METADATA.bundleFile
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Unblocker bundle download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -411,7 +416,7 @@ export function downloadResourcePackZip(filename = 'TownyArchitecture.zip'): boo
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Resource Pack download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
@@ -442,7 +447,7 @@ export function downloadJarFile(version: 'v2' | 'v1' = 'v2', filename?: string):
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory JAR download:', err);
-    window.location.href = `/${actualFilename}`;
+    window.location.href = publicAssetUrl(actualFilename);
     return false;
   }
 }
@@ -473,7 +478,7 @@ export function downloadBundleZip(version: 'v2' | 'v1' = 'v2', filename?: string
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory Bundle download:', err);
-    window.location.href = `/${actualFilename}`;
+    window.location.href = publicAssetUrl(actualFilename);
     return false;
   }
 }
@@ -501,7 +506,7 @@ export function downloadAllPluginsZip(filename = 'TownySuite-All-Plugins.zip'): 
     return true;
   } catch (err) {
     console.error('Failed to trigger in-memory All Plugins ZIP download:', err);
-    window.location.href = `/${filename}`;
+    window.location.href = publicAssetUrl(filename);
     return false;
   }
 }
