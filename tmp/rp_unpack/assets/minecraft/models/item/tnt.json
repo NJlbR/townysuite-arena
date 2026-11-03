@@ -1,0 +1,41 @@
+{
+  "parent": "minecraft:block/tnt",
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 1
+      },
+      "model": "siegecannon:item/cannon_tnt"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 2
+      },
+      "model": "siegecannon:item/cannon_tnt"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 100
+      },
+      "model": "siegecannon:item/cannon_tnt"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 1001
+      },
+      "model": "siegecannon:item/cannon_tnt"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 7001
+      },
+      "model": "siegecannon:item/cannon_tnt"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 99201
+      },
+      "model": "siegecannon:item/cannon_tnt"
+    }
+  ]
+}

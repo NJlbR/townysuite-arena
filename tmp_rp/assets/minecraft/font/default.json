@@ -1,0 +1,20 @@
+{
+    "providers": [
+        {
+            "type": "space",
+            "advances": {
+                "\ue000": -8,
+                "\ue002": -168
+            }
+        },
+        {
+            "type": "bitmap",
+            "file": "townyarchitecture:gui/menu.png",
+            "ascent": 13,
+            "height": 256,
+            "chars": [
+                "\ue001"
+            ]
+        }
+    ]
+}

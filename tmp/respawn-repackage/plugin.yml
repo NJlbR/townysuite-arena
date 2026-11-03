@@ -1,0 +1,31 @@
+name: TownyRespawn
+version: 1.1.2
+main: com.towny.respawn.TownyRespawnPlugin
+api-version: 1.20
+description: Interactive In-Game BlueMap-like Map (/map), Player Graphics Quality Settings, Multi-Bed System & Tactical Death Respawn Selector
+author: TownyArchitectureTeam
+depend: [Towny]
+softdepend: [TownySieges, TownyArchitecture, TownyExplosionUnblocker]
+commands:
+  map:
+    description: Открывает интерактивную внутриигровую карту мира с городами и осадами
+    aliases: [townymap, bluemapgui, tmap]
+    permission: townyrespawn.use
+  respawn:
+    description: Открывает меню выбора точек возрождения и списка кроватей
+    aliases: [spawns, spawnselect, beds, mybeds]
+    permission: townyrespawn.use
+  townyrespawn:
+    description: Главная администраторская команда плагина TownyRespawn
+    aliases: [trespawn]
+    permission: townyrespawn.admin
+permissions:
+  townyrespawn.use:
+    description: Доступ к просмотру карты /map и выбору респавна
+    default: true
+  townyrespawn.beds.multiple:
+    description: Право на использование нескольких кроватей
+    default: true
+  townyrespawn.admin:
+    description: Администраторские права на перезагрузку и управление
+    default: op

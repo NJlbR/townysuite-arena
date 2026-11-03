@@ -1,0 +1,1461 @@
+{
+  "credit": "SiegeMortar 3D Model (Ground-Aligned Y: -8..+8, Zero Z-Fighting)",
+  "textures": {
+    "particle": "siegecannon:item/cannon_wood",
+    "wood": "siegecannon:item/cannon_wood",
+    "metal": "siegecannon:item/cannon_metal",
+    "0": "siegecannon:item/cannon_wood",
+    "1": "siegecannon:item/cannon_metal"
+  },
+  "elements": [
+    {
+      "name": "carriage_bed",
+      "from": [
+        2.5,
+        -8.0,
+        1.8
+      ],
+      "to": [
+        13.5,
+        -4.0,
+        14.8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.5,
+            12,
+            13.5,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "south": {
+          "uv": [
+            2.5,
+            12,
+            13.5,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "east": {
+          "uv": [
+            1.8,
+            12,
+            14.8,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "west": {
+          "uv": [
+            1.8,
+            12,
+            14.8,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "up": {
+          "uv": [
+            2.5,
+            1.8,
+            13.5,
+            14.8
+          ],
+          "texture": "#wood"
+        },
+        "down": {
+          "uv": [
+            2.5,
+            1.8,
+            13.5,
+            14.8
+          ],
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "name": "carriage_left_cheek",
+      "from": [
+        1.2,
+        -6.0,
+        2.2
+      ],
+      "to": [
+        4.2,
+        6.0,
+        14.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1.2,
+            4,
+            4.2,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "south": {
+          "uv": [
+            1.2,
+            4,
+            4.2,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "east": {
+          "uv": [
+            2.2,
+            4,
+            14.4,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "west": {
+          "uv": [
+            2.2,
+            4,
+            14.4,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "up": {
+          "uv": [
+            1.2,
+            2.2,
+            4.2,
+            14.4
+          ],
+          "texture": "#wood"
+        },
+        "down": {
+          "uv": [
+            1.2,
+            2.2,
+            4.2,
+            14.4
+          ],
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "name": "carriage_right_cheek",
+      "from": [
+        11.8,
+        -6.0,
+        2.2
+      ],
+      "to": [
+        14.8,
+        6.0,
+        14.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            11.8,
+            4,
+            14.8,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "south": {
+          "uv": [
+            11.8,
+            4,
+            14.8,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "east": {
+          "uv": [
+            2.2,
+            4,
+            14.4,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "west": {
+          "uv": [
+            2.2,
+            4,
+            14.4,
+            16
+          ],
+          "texture": "#wood"
+        },
+        "up": {
+          "uv": [
+            11.8,
+            2.2,
+            14.8,
+            14.4
+          ],
+          "texture": "#wood"
+        },
+        "down": {
+          "uv": [
+            11.8,
+            2.2,
+            14.8,
+            14.4
+          ],
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "name": "elevation_wedge",
+      "from": [
+        5.0,
+        -3.95,
+        7.8
+      ],
+      "to": [
+        11.0,
+        -1.2,
+        12.8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5,
+            9,
+            11,
+            13
+          ],
+          "texture": "#wood"
+        },
+        "south": {
+          "uv": [
+            5,
+            9,
+            11,
+            13
+          ],
+          "texture": "#wood"
+        },
+        "east": {
+          "uv": [
+            7.8,
+            9,
+            12.8,
+            13
+          ],
+          "texture": "#wood"
+        },
+        "west": {
+          "uv": [
+            7.8,
+            9,
+            12.8,
+            13
+          ],
+          "texture": "#wood"
+        },
+        "up": {
+          "uv": [
+            5,
+            7.8,
+            11,
+            12.8
+          ],
+          "texture": "#wood"
+        },
+        "down": {
+          "uv": [
+            5,
+            7.8,
+            11,
+            12.8
+          ],
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "name": "crossbeam_front",
+      "from": [
+        4.0,
+        -7.0,
+        0.8
+      ],
+      "to": [
+        12.0,
+        -4.2,
+        2.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            12,
+            12,
+            15
+          ],
+          "texture": "#wood"
+        },
+        "south": {
+          "uv": [
+            4,
+            12,
+            12,
+            15
+          ],
+          "texture": "#wood"
+        },
+        "east": {
+          "uv": [
+            0.8,
+            12,
+            2.4,
+            15
+          ],
+          "texture": "#wood"
+        },
+        "west": {
+          "uv": [
+            0.8,
+            12,
+            2.4,
+            15
+          ],
+          "texture": "#wood"
+        },
+        "up": {
+          "uv": [
+            4,
+            0.8,
+            12,
+            2.4
+          ],
+          "texture": "#wood"
+        },
+        "down": {
+          "uv": [
+            4,
+            0.8,
+            12,
+            2.4
+          ],
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "name": "rear_trail_spade",
+      "from": [
+        4.2,
+        -8.0,
+        13.2
+      ],
+      "to": [
+        11.8,
+        -5.2,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4.2,
+            13,
+            11.8,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            4.2,
+            13,
+            11.8,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            13.2,
+            13,
+            16,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            13.2,
+            13,
+            16,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            4.2,
+            13.2,
+            11.8,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            4.2,
+            13.2,
+            11.8,
+            16
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "axle_rod",
+      "from": [
+        0.5,
+        -2.0,
+        6.5
+      ],
+      "to": [
+        15.5,
+        1.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.5,
+            7,
+            15.5,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            0.5,
+            7,
+            15.5,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            6.5,
+            7,
+            8.5,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            6.5,
+            7,
+            8.5,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            0.5,
+            6.5,
+            15.5,
+            8.5
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            0.5,
+            6.5,
+            15.5,
+            8.5
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "left_wheel",
+      "from": [
+        0.2,
+        -8.0,
+        1.0
+      ],
+      "to": [
+        2.2,
+        7.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.2,
+            1,
+            2.2,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            0.2,
+            1,
+            2.2,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            14,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            14,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            0.2,
+            1,
+            2.2,
+            14
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            0.2,
+            1,
+            2.2,
+            14
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "left_hubcap",
+      "from": [
+        0.0,
+        -2.0,
+        6.0
+      ],
+      "to": [
+        0.4,
+        1.0,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            7,
+            0.4,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            0,
+            7,
+            0.4,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            6,
+            7,
+            9,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            6,
+            7,
+            9,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            0.4,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            0.4,
+            9
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "right_wheel",
+      "from": [
+        13.8,
+        -8.0,
+        1.0
+      ],
+      "to": [
+        15.8,
+        7.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            13.8,
+            1,
+            15.8,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            13.8,
+            1,
+            15.8,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            14,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            14,
+            16
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            13.8,
+            1,
+            15.8,
+            14
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            13.8,
+            1,
+            15.8,
+            14
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "right_hubcap",
+      "from": [
+        15.6,
+        -2.0,
+        6.0
+      ],
+      "to": [
+        16.0,
+        1.0,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            15.6,
+            7,
+            16,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            15.6,
+            7,
+            16,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            6,
+            7,
+            9,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            6,
+            7,
+            9,
+            10
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            15.6,
+            6,
+            16,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            15.6,
+            6,
+            16,
+            9
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "trunnions_pivot",
+      "from": [
+        1.0,
+        -0.5,
+        6.2
+      ],
+      "to": [
+        15.0,
+        2.5,
+        8.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            5.5,
+            15,
+            8.5
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            1,
+            5.5,
+            15,
+            8.5
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            6.2,
+            5.5,
+            8.2,
+            8.5
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            6.2,
+            5.5,
+            8.2,
+            8.5
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            1,
+            6.2,
+            15,
+            8.2
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            1,
+            6.2,
+            15,
+            8.2
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "cascabel_knob",
+      "from": [
+        6.5,
+        -1.0,
+        13.9
+      ],
+      "to": [
+        9.5,
+        2.0,
+        15.6
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.5,
+            6,
+            9.5,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            6.5,
+            6,
+            9.5,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            13.9,
+            6,
+            15.6,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            13.9,
+            6,
+            15.6,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            6.5,
+            13.9,
+            9.5,
+            15.6
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            6.5,
+            13.9,
+            9.5,
+            15.6
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "breech_base",
+      "from": [
+        4.2,
+        -2.5,
+        7.2
+      ],
+      "to": [
+        11.8,
+        4.5,
+        13.8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4.2,
+            3.5,
+            11.8,
+            10.5
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            4.2,
+            3.5,
+            11.8,
+            10.5
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            7.2,
+            3.5,
+            13.8,
+            10.5
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            7.2,
+            3.5,
+            13.8,
+            10.5
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            4.2,
+            7.2,
+            11.8,
+            13.8
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            4.2,
+            7.2,
+            11.8,
+            13.8
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "breech_reinforcing_band",
+      "from": [
+        3.8,
+        -2.9,
+        9.6
+      ],
+      "to": [
+        12.2,
+        4.9,
+        11.8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            3.8,
+            3,
+            12.2,
+            11
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            3.8,
+            3,
+            12.2,
+            11
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            9.6,
+            3,
+            11.8,
+            11
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            9.6,
+            3,
+            11.8,
+            11
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            3.8,
+            9.6,
+            12.2,
+            11.8
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            3.8,
+            9.6,
+            12.2,
+            11.8
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "barrel_main",
+      "from": [
+        4.6,
+        -1.5,
+        2.8
+      ],
+      "to": [
+        11.4,
+        6.5,
+        7.8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4.6,
+            1.5,
+            11.4,
+            9.5
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            4.6,
+            1.5,
+            11.4,
+            9.5
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            2.8,
+            1.5,
+            7.8,
+            9.5
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            1.5,
+            7.8,
+            9.5
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            4.6,
+            2.8,
+            11.4,
+            7.8
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            4.6,
+            2.8,
+            11.4,
+            7.8
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "muzzle_collar",
+      "from": [
+        4.0,
+        -1.0,
+        0.2
+      ],
+      "to": [
+        12.0,
+        8.0,
+        3.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            0,
+            12,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            4,
+            0,
+            12,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            0.2,
+            0,
+            3.2,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            0.2,
+            0,
+            3.2,
+            9
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            4,
+            0.2,
+            12,
+            3.2
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            4,
+            0.2,
+            12,
+            3.2
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "muzzle_bore",
+      "from": [
+        5.5,
+        0.5,
+        0.0
+      ],
+      "to": [
+        10.5,
+        6.5,
+        0.18
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            5,
+            6
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            5,
+            6
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            0.18,
+            6
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            0.18,
+            6
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            5,
+            0.18
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            5,
+            0.18
+          ],
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "name": "touchhole_fuse",
+      "from": [
+        7.2,
+        4.95,
+        10.2
+      ],
+      "to": [
+        8.8,
+        8.0,
+        11.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.2,
+            0,
+            8.8,
+            3.5
+          ],
+          "texture": "#metal"
+        },
+        "south": {
+          "uv": [
+            7.2,
+            0,
+            8.8,
+            3.5
+          ],
+          "texture": "#metal"
+        },
+        "east": {
+          "uv": [
+            10.2,
+            0,
+            11.4,
+            3.5
+          ],
+          "texture": "#metal"
+        },
+        "west": {
+          "uv": [
+            10.2,
+            0,
+            11.4,
+            3.5
+          ],
+          "texture": "#metal"
+        },
+        "up": {
+          "uv": [
+            7.2,
+            10.2,
+            8.8,
+            11.4
+          ],
+          "texture": "#metal"
+        },
+        "down": {
+          "uv": [
+            7.2,
+            10.2,
+            8.8,
+            11.4
+          ],
+          "texture": "#metal"
+        }
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "head": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  }
+}

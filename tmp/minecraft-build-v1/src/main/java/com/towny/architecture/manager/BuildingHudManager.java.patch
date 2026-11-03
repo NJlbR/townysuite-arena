@@ -1,0 +1,17 @@
+--- tmp/minecraft-build/src/main/java/com/towny/architecture/manager/BuildingHudManager.java
++++ tmp/minecraft-build/src/main/java/com/towny/architecture/manager/BuildingHudManager.java
+@@ -300,10 +300,10 @@
+         try {
+             if (dustParticle.getDataType() == Particle.DustOptions.class) {
+                 player.spawnParticle(dustParticle, loc, 2, 0.02, 0.06, 0.02, 0.0, dust);
+             } else {
+-                player.spawnParticle(dustParticle, loc, 2, 0.02, 0.06, 0.02, 0.0);
++                player.spawnParticle(Particle.valueOf("VILLAGER_HAPPY"), loc, 1, 0.0, 0.0, 0.0, 0.0);
+             }
+         } catch (Exception e) {
+             try {
+-                player.spawnParticle(Particle.FIREWORKS_SPARK, loc, 1, 0.0, 0.0, 0.0, 0.0);
++                player.spawnParticle(Particle.valueOf("VILLAGER_HAPPY"), loc, 1, 0.0, 0.0, 0.0, 0.0);
+             } catch (Exception ignored) {}
+         }
+     }

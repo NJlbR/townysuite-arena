@@ -1,0 +1,54 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "cases": [
+      {
+        "when": 1,
+        "model": {
+          "type": "minecraft:model",
+          "model": "siegecannon:item/cannon_tnt"
+        }
+      },
+      {
+        "when": 2,
+        "model": {
+          "type": "minecraft:model",
+          "model": "siegecannon:item/cannon_tnt"
+        }
+      },
+      {
+        "when": 100,
+        "model": {
+          "type": "minecraft:model",
+          "model": "siegecannon:item/cannon_tnt"
+        }
+      },
+      {
+        "when": 1001,
+        "model": {
+          "type": "minecraft:model",
+          "model": "siegecannon:item/cannon_tnt"
+        }
+      },
+      {
+        "when": 7001,
+        "model": {
+          "type": "minecraft:model",
+          "model": "siegecannon:item/cannon_tnt"
+        }
+      },
+      {
+        "when": 99201,
+        "model": {
+          "type": "minecraft:model",
+          "model": "siegecannon:item/cannon_tnt"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/tnt"
+    }
+  }
+}

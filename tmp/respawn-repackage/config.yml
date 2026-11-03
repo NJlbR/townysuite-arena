@@ -1,0 +1,152 @@
+# ========================================================
+# TownyRespawn Configuration
+# ========================================================
+# Плагин интерактивной внутриигровой карты (/map) в стиле BlueMap,
+# системы мульти-кроватей, выбора точки возрождения после смерти
+# и визуализации городов Towny и активных осад TownySieges.
+
+enabled: true
+debug-logging: false
+
+# --------------------------------------------------------
+# 1. Настройки системы мульти-кроватей (Multiple Beds)
+# --------------------------------------------------------
+beds:
+  # Разрешить ли игрокам иметь несколько привязанных кроватей
+  enabled: true
+
+  # Максимальное количество кроватей по умолчанию (без доп. прав)
+  max-beds-default: 3
+
+  # Использовать ли пермишены для лимитов (например: townyrespawn.beds.5)
+  use-permission-limits: true
+
+  # Автоматически регистрировать кровать при нажатии ПКМ / сне / сне на кровати
+  auto-register-on-interact: true
+
+  # Проверять физическое наличие блока кровати при респавне
+  verify-bed-block-exists: true
+
+  # Названия кроватей по умолчанию ({number} = порядковый номер)
+  default-bed-name-format: "Кровать #{number}"
+
+# --------------------------------------------------------
+# 2. Настройки точек возрождения и интеграции с Towny
+# --------------------------------------------------------
+respawn:
+  # Разрешить возрождение на спавне своего города (/t spawn)
+  allow-town-spawn: true
+
+  # Разрешить возрождение на спавне столицы своей нации (/n spawn)
+  allow-nation-spawn: true
+
+  # Требовать, чтобы город/нация не находились под активной осадой
+  # (если true, во время активного штурма спавниться в осажденном городе запрещено)
+  block-spawn-if-under-siege: false
+
+  # Настройки кнопки "Ванильный респавн" (случайное место / дикая природа)
+  vanilla-respawn:
+    enabled: true
+    label: "&a&l🌲 Ванильный респавн"
+    description:
+      - "&7Возрождение в дикой природе мира"
+      - "&7(как при стандартном случайном спавне)"
+      - "&e▸ Нажмите для быстрого возрождения"
+    wild-radius-min: 200
+    wild-radius-max: 1500
+
+  # Настройки кнопки "На спавн сервера"
+  server-spawn:
+    enabled: true
+    label: "&6&l🏛 На спавн сервера"
+    description:
+      - "&7Возрождение на главном спавне сервера"
+      - "&7Безопасная мирная зона"
+      - "&e▸ Нажмите для телепортации на спавн"
+    use-world-spawn: true
+    custom-coords:
+      enabled: false
+      world: "world"
+      x: 0.5
+      y: 70.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+
+  # Задержка (в тиках) перед открытием меню карты после смерти
+  gui-open-delay-ticks: 2
+
+  # Эффекты при респавне
+  effects:
+    invulnerability-seconds: 5
+    play-sound: true
+    sound-name: "ITEM_TOTEM_USE"
+    spawn-particles: true
+
+# --------------------------------------------------------
+# 3. Интерактивная карта (/map) и уровни графики игрока
+# --------------------------------------------------------
+map:
+  # Уровень графики по умолчанию для новых игроков: LOW, MEDIUM, HIGH, HD
+  default-graphics: "HIGH"
+
+  # Радиус отображения карты в чанках (размер сетки в GUI)
+  # 5 = сетка 5x5 чанков, 7 = 7x7 (рекомендуется для 54-слотового меню)
+  view-radius-chunks: 3
+
+  # Настройки уровней графики для игроков:
+  graphics-levels:
+    LOW:
+      name: "&7[Низкая - 2D Сетка]"
+      description: "Минимальная нагрузка, схематичные цветные шерстяные маркеры"
+      show-elevation: false
+      show-biomes: false
+      fast-render: true
+    MEDIUM:
+      name: "&a[Средняя - Контуры]"
+      description: "Четкие контуры границ городов и терракотовая подсветка"
+      show-elevation: false
+      show-biomes: true
+      fast-render: true
+    HIGH:
+      name: "&e[Высокая - Детальная]"
+      description: "Бетонная цветовая гамма, биомная градация и подсветка высот"
+      show-elevation: true
+      show-biomes: true
+      fast-render: false
+    HD:
+      name: "&b[Ультра HD - Изометрия]"
+      description: "Стиль BlueMap: полный рендер высот, градиенты, осадные маяки и световые эффекты"
+      show-elevation: true
+      show-biomes: true
+      fast-render: false
+
+  # Подсветка городов Towny на карте
+  town-highlight:
+    enabled: true
+    own-town-color: "LIME"
+    neutral-town-color: "CYAN"
+    allied-town-color: "LIGHT_BLUE"
+    enemy-town-color: "RED"
+    capital-town-color: "GOLD"
+
+  # Подсветка осад и осадных лагерей TownySieges на карте
+  siege-highlight:
+    enabled: true
+    camp-marker-color: "ORANGE"
+    active-assault-color: "RED"
+    flash-effect-ticks: 10
+    show-camp-details-lore: true
+
+# --------------------------------------------------------
+# 4. Тексты и сообщения
+# --------------------------------------------------------
+messages:
+  prefix: "&b&l[TownyRespawn]&r "
+  bed-registered: "&a✔ Кровать «{name}» успешно добавлена в ваши точки возрождения! ({current}/{max})"
+  bed-limit-reached: "&cУ вас достигнут лимит кроватей ({max})! Сломайте старую кровать, чтобы добавить новую."
+  bed-destroyed: "&eВаша кровать «{name}» была уничтожена и удалена из списка респавна."
+  respawn-selected: "&aВы успешно возродились: &f{location}&a!"
+  graphics-changed: "&eУровень графики карты изменен на: {level}&e."
+  menu-title-map: "&8Интерактивная карта &b/map"
+  menu-title-death: "&4&l☠ ВЫБОР ТОЧКИ ВОЗРОЖДЕНИЯ"

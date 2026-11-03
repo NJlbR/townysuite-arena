@@ -1,0 +1,95 @@
+# ========================================================
+# TownyRespawn Configuration v1.1.0
+# ========================================================
+enabled: true
+debug-logging: false
+
+# --------------------------------------------------------
+# 1. Настройки системы мульти-кроватей (Multiple Beds)
+# --------------------------------------------------------
+beds:
+  enabled: true
+  max-beds-default: 3
+  use-permission-limits: true
+  allow-rename: true
+  auto-register-on-interact: true
+  verify-bed-block-exists: true
+  exclusive-one-player-per-bed: true
+  auto-cleanup-destroyed-beds: true
+  default-bed-name-format: "Кровать #{number}"
+
+# --------------------------------------------------------
+# 2. Настройки точек возрождения и КД
+# --------------------------------------------------------
+respawn:
+  # КД на повторное возрождение в секундах (30 секунд)
+  # После возрождения и последующей смерти игрок не может возродиться,
+  # пока от предыдущего возрождения не прошло 30 секунд.
+  cooldown-seconds: 30
+  delay-seconds: 30
+
+limbo:
+  # Настройки изоляции игрока во время нахождения в меню возрождения.
+  # Игрок ВООБЩЕ не появляется в игровом мире для других, скрыт через hidePlayer,
+  # невидим, в режиме ADVENTURE, парит в безопасной точке в небе без урона и коллизий.
+  y-coordinate: 320.0
+  world: ""
+
+  # Команда /respawn доступна только администраторам для тестов
+  # Для обычных игроков меню открывается ТОЛЬКО при смерти игрока!
+  admin-only-command: true
+  allow-town-spawn: true
+  allow-nation-spawn: true
+  block-spawn-if-under-siege: false
+
+  vanilla-respawn:
+    enabled: true
+    label: "&a&l🌲 Ванильный респавн"
+    description:
+      - "&7Возрождение в дикой природе мира"
+      - "&7(как при стандартном случайном спавне)"
+      - "&e▸ Нажмите для быстрого возрождения"
+    wild-radius-min: 200
+    wild-radius-max: 1500
+
+  server-spawn:
+    enabled: true
+    label: "&6&l🏛 На спавн сервера"
+    description:
+      - "&7Возрождение на главном спавне сервера"
+      - "&7Безопасная мирная зона"
+      - "&e▸ Нажмите для телепортации на спавн"
+    use-world-spawn: true
+    custom-coords:
+      enabled: false
+      world: "world"
+      x: 0.5
+      y: 70.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+
+  gui-open-delay-ticks: 1
+
+  # Негромкий звук при возрождении для оповещения окружающих игроков (БЕЗ ТОТЕМОВ И ЭФФЕКТОВ!)
+  sound:
+    enabled: true
+    name: "BLOCK_BEACON_ACTIVATE"
+    volume: 0.5
+    pitch: 1.4
+
+# --------------------------------------------------------
+# 3. Сообщения плагина
+# --------------------------------------------------------
+messages:
+  prefix: "&b&l[TownyRespawn]&r "
+  menu-title-death: "&8Выбор точки возрождения"
+  menu-title-respawn: "&8Выбор точки возрождения"
+  command-admin-only: "&cКоманда /respawn доступна только администраторам для тестов. Для обычных игроков меню открывается только при смерти игрока."
+  cooldown-warning: "&cВозрождение недоступно! До окончания КД осталось: &e{seconds} &cсек."
+  cooldown-actionbar: "&c⏳ КД на возрождение: &e{seconds} &cсек. &7(подождите перед выбором точки)"
+  cooldown-ready: "&a✔ Возрождение готово! Выберите точку в меню."
+  respawn-selected: "&aВы успешно возродились: &f{location}&a!"
+  bed-registered: "&a✔ Кровать «{name}» успешно привязана! ({current}/{max})"
+  bed-limit-reached: "&cУ вас достигнут лимит кроватей ({max})! Удалите старую через /respawn delete."
+  bed-renamed: "&a✔ Кровать успешно переименована в: &b«{name}»&a!"

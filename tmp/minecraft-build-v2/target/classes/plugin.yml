@@ -1,0 +1,20 @@
+name: TownyArchitecture
+version: 2.0.0
+main: com.towny.architecture.TownyArchitecturePlugin
+api-version: '1.20'
+depend: [Towny]
+author: TownyArchitectureTeam
+
+commands:
+  builds:
+    description: Open the Towny Architecture Blueprints GUI or manage building plots
+    aliases: [build, townbuild, tb]
+    permission: townyarchitecture.use
+
+permissions:
+  townyarchitecture.use:
+    description: Allows viewing the blueprints catalog and progress HUD
+    default: true
+  townyarchitecture.admin:
+    description: Access to admin reload and wonder reset commands
+    default: op

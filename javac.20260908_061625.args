@@ -1,0 +1,5 @@
+-cp
+tmp/minecraft-build/lib/paper-api.jar
+-d
+tmp/minecraft-build/classes
+@tmp/minecraft-build/sources.txt

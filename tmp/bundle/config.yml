@@ -1,0 +1,47 @@
+# ========================================================
+# TownyArchitecture Plugin Configuration
+# Compatible with Paper 1.20+, Towny 0.98+, AuraSkills 2.1+
+# ========================================================
+
+settings:
+  # Check if player must meet the required AuraSkills skill level
+  enforce-skill-level: true
+  
+  # Default AuraSkills skill name checked for building requirements.
+  # Options: BUILDING, TOTAL (Power Level), REPAIR, WOODCUTTING, MINING
+  skill-name: "BUILDING"
+  
+  # AuraSkills experience granted per placed blueprint block
+  skill-xp-per-block: 15
+  
+  # Durability percentage below which passive buffs are suspended
+  buff-suspension-health-percent: 70.0
+  
+  # How often (in seconds) to check and refresh passive buffs on town citizens
+  buff-check-interval-seconds: 5
+
+  # How many seconds to display each pair of needed blocks in the HUD / Action Bar before rotating
+  hud-material-cycle-interval-seconds: 5
+  
+  # Buff area rules (STRICTLY for citizens of the town owning the building):
+  # - 1x1 chunk buildings: active in a 5-chunk radius around the building
+  # - 2x1 / 1x2 chunk buildings: active across the entire town territory
+  # - 2x2 chunk buildings (World Wonders): active everywhere on the entire map (all worlds)
+  buff-1x1-chunk-radius: 5
+  
+  # Visual settings
+  particles-enabled: true
+  sound-effects-enabled: true
+
+messages:
+  prefix: "&6[TownyBuilds]&r "
+  no-permission: "&cУ вас нет прав на использование этой команды!"
+  not-in-town: "&cВы должны состоять в городе для использования этой функции!"
+  not-mayor-or-builder: "&cТолько мэр или помощник города могут утверждать строительные проекты!"
+  outside-town-bounds: "&cВыделенная территория выходит за пределы границ вашего города!"
+  mcmmo-level-too-low: "&cВаш уровень AuraSkills (%level%) ниже требуемого (%required%)!"
+  wonder-already-built: "&4[!] Это Чудо Света уже воздвигнуто городом %town% и заблокировано навсегда!"
+  project-started: "&aПроект «&e%name%&a» утвержден на чанках &f%chunks%&a! Размещайте необходимые блоки."
+  building-completed: "&6&l[ГОРОД]&a Строительство «&e%name%&a» завершено на 100%%! Баффы активированы!"
+  building-damaged: "&c&l[ОСАДА]&e Здание «&6%name%&e» повреждено (%health%%)! Баффы отключены до починки!"
+  building-repaired: "&aЗдание «&e%name%&a» восстановлено до 100%%! Баффы снова действуют."

@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Towny \u0026 mcMMO Architecture",
+  "description": "Готовый скомпилированный .jar плагин TownyArchitecture (Paper 1.20+) для Minecraft: загрузка JAR, сборка bundle.zip, визуальный редактор config.yml / buildings.yml и документация.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

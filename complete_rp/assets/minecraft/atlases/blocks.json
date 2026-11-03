@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "type": "directory",
+      "source": "item",
+      "prefix": "item/"
+    },
+    {
+      "type": "directory",
+      "source": "block",
+      "prefix": "block/"
+    },
+    {
+      "type": "single",
+      "resource": "siegecannon:item/cannon_wood",
+      "sprite": "siegecannon:item/cannon_wood"
+    },
+    {
+      "type": "single",
+      "resource": "siegecannon:item/cannon_metal",
+      "sprite": "siegecannon:item/cannon_metal"
+    }
+  ]
+}

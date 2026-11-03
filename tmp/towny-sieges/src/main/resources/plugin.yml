@@ -1,0 +1,33 @@
+name: TownySieges
+version: 1.5.7
+main: com.towny.sieges.TownySiegesPlugin
+api-version: '1.20'
+description: Siege Camps, Automatic Chunk Restore, Mayor Disband, Admin Controls, Banner Capture, Beacon Beams, Outposts.
+author: TownyArchitectureTeam
+softdepend: [Towny, TownyArchitecture, TownyExplosionUnblocker]
+commands:
+  siege:
+    description: Основная команда управления осадами
+    aliases: [sieges, townysieges, osada]
+    permission: townysieges.use
+  disband:
+    description: Расформировать осадный лагерь
+    aliases: [cancel, destroy]
+    permission: townysieges.disband
+  skip-prep:
+    description: Пропустить подготовку к штурму
+    aliases: [skip, assault]
+    permission: townysieges.admin
+permissions:
+  townysieges.use:
+    description: Доступ к командам осад
+    default: true
+  townysieges.disband:
+    description: Право на расформирование лагеря
+    default: true
+  townysieges.capture:
+    description: Право на установку штурмового флага
+    default: true
+  townysieges.admin:
+    description: Администраторские команды
+    default: op

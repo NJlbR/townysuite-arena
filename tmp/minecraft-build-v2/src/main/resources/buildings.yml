@@ -1,0 +1,204 @@
+# ========================================================
+# TownyArchitecture Blueprints Database (v2.4.0)
+# Realistic Bank Interior (Client Hall, Teller Counter & Secure Vault)
+# Clear Roof Openings (Top ladder rungs removed for flat ceiling seals)
+# ========================================================
+blueprints:
+  bank:
+    name: "Central Bank"
+    name-ru: "Центральный Банк"
+    description: "Финансовые операции в радиусе 5 чанков + УВЕЛИЧИВАЕТ лимит наличных денег у граждан на +10 000 монет (бонусы Банков суммируются!). При превышении лимита игрок получает дебаффы до пополнения казны (/t deposit)."
+    icon: "GOLD_INGOT"
+    required-skill-level: 5
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 1
+      length-chunks: 1
+    dimensions:
+      height-y: 6
+    resources:
+      STONE_BRICKS: 385
+      QUARTZ_BLOCK: 172
+      IRON_BARS: 42
+      GOLD_BLOCK: 4
+      LADDER: 4
+    buffs:
+      economy-access: true
+      bank-wallet-bonus: 10000
+    particle-color: "#FFD700"
+  hospital:
+    name: "City Hospital"
+    name-ru: "Городская Больница"
+    description: "Дарует жителям +1 Сердце (2 HP) и регенерацию. Зона баффа: 5 чанков вокруг постройки (только гражданам города)."
+    icon: "RED_WOOL"
+    required-skill-level: 20
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 1
+      length-chunks: 1
+    dimensions:
+      height-y: 6
+    resources:
+      STONE_BRICKS: 152
+      WHITE_CONCRETE: 350
+      LADDER: 4
+      GLASS: 24
+      RED_WOOL: 12
+    buffs:
+      health-boost-hearts: 1
+      regeneration-level: 1
+    particle-color: "#FF5555"
+  barracks:
+    name: "Military Barracks"
+    name-ru: "Военные Казармы"
+    description: "Увеличивает силу и выносливость защитников. Зона баффа: ВСЯ ТЕРРИТОРИЯ ГОРОДА (только гражданам города)."
+    icon: "IRON_SWORD"
+    required-skill-level: 35
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 1
+      length-chunks: 2
+    dimensions:
+      height-y: 5
+    resources:
+      STONE_BRICKS: 176
+      OAK_PLANKS: 464
+      COBBLESTONE: 296
+      IRON_BLOCK: 4
+      LADDER: 3
+    buffs:
+      strength-level: 1
+      speed-level: 1
+    particle-color: "#FF4500"
+  library:
+    name: "Arcane Library"
+    name-ru: "Библиотека Чар"
+    description: "Бонус к опыту и спешка строителям. Зона баффа: 5 чанков вокруг постройки (только гражданам города)."
+    icon: "ENCHANTING_TABLE"
+    required-skill-level: 50
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 1
+      length-chunks: 1
+    dimensions:
+      height-y: 5
+    resources:
+      DARK_OAK_PLANKS: 472
+      OBSIDIAN: 16
+      BOOKSHELF: 40
+      LAPIS_BLOCK: 8
+      LADDER: 3
+    buffs:
+      haste-level: 1
+    particle-color: "#5555FF"
+  watchtower:
+    name: "City Watchtower"
+    name-ru: "Дозорная Башня"
+    description: "Предупреждает о врагах и дает ночное зрение. Зона баффа: 5 чанков вокруг постройки (только гражданам города)."
+    icon: "SPYGLASS"
+    required-skill-level: 15
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 1
+      length-chunks: 1
+    dimensions:
+      height-y: 11
+    resources:
+      STONE_BRICKS: 185
+      COBBLESTONE: 268
+      LADDER: 8
+      LANTERN: 8
+    buffs:
+      night-vision: true
+    particle-color: "#FFFF55"
+  sun_pyramid:
+    name: "Great Sun Pyramid"
+    name-ru: "Великая Пирамида Солнца"
+    description: "ЧУДО СВЕТА (2x2). 1 на весь мир! Спешка II и Сопротивление. Зона баффа: ВЕЗДЕ НА ВСЕЙ КАРТЕ (в любых мирах, но только для граждан этого города)."
+    icon: "GOLD_BLOCK"
+    required-skill-level: 80
+    is-world-wonder: true
+    chunk-footprint:
+      width-chunks: 2
+      length-chunks: 2
+    dimensions:
+      height-y: 7
+    resources:
+      SANDSTONE: 1196
+      GOLD_BLOCK: 36
+      NETHERITE_BLOCK: 1
+      BEACON: 1
+    buffs:
+      haste-level: 2
+      resistance-level: 1
+    particle-color: "#FFAA00"
+  town_hall:
+    name: "Town Hall"
+    name-ru: "Мэрия"
+    description: "Сердце города (2x2). Центр дипломатии и гражданской жизни. Защищается толстыми стенами, укреплениями и гарнизоном города."
+    icon: "BELL"
+    required-skill-level: 25
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 2
+      length-chunks: 2
+    dimensions:
+      height-y: 8
+    resources:
+      STONE_BRICKS: 738
+      DARK_OAK_PLANKS: 640
+      DEEPSLATE_BRICKS: 172
+      GLASS: 60
+      IRON_BARS: 46
+      LANTERN: 8
+      GOLD_BLOCK: 8
+      BELL: 1
+    buffs:
+      hero-of-the-village: 1
+    particle-color: "#FFD700"
+
+  city_wall:
+    name: "Fortified City Wall"
+    name-ru: "Городская Стена"
+    description: "Фортификационный вал (2x1). Массивная модульная каменная стена с угловыми стыковочными башнями и зубцами. Блоки стены, установленные строго на свои места по чертежу, обладают двойной взрывоустойчивостью (2x) от оригинальной взрывоустойчивости блока. Стены стыкуются в единую цепь."
+    icon: "BRICKS"
+    required-skill-level: 10
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 2
+      length-chunks: 1
+    dimensions:
+      height-y: 6
+    resources:
+      STONE_BRICKS: 1054
+      COBBLESTONE: 254
+      CRACKED_STONE_BRICKS: 164
+      IRON_BARS: 20
+      LANTERN: 4
+    buffs: {}
+    particle-color: "#808080"
+
+  forge:
+    name: "Blacksmith Forge"
+    name-ru: "Кузница"
+    description: "Мастерская ковки (1x1 чанк). Только находясь на чанке активной кузницы, доступна команда /build forge — Виртуальная Наковальня и Супер-Наковальня для создания Супер-Кирок!"
+    icon: "ANVIL"
+    required-skill-level: 15
+    is-world-wonder: false
+    chunk-footprint:
+      width-chunks: 1
+      length-chunks: 1
+    dimensions:
+      height-y: 6
+    resources:
+      STONE_BRICKS: 240
+      DEEPSLATE_BRICKS: 180
+      ANVIL: 1
+      BLAST_FURNACE: 4
+      IRON_BLOCK: 8
+      LAVA_BUCKET: 2
+      LADDER: 3
+    buffs:
+      forge-access: true
+    particle-color: "#FF8C00"
+

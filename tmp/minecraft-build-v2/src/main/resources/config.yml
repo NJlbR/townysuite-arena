@@ -1,0 +1,122 @@
+# ========================================================
+# TownyArchitecture Plugin Configuration
+# Compatible with Paper 1.20+, Purpur, Spigot & Towny 0.98+
+# Completely Independent Built-in Architect Progression!
+# ========================================================
+
+settings:
+  # Требовать ли выравнивания участка перед началом строительства нового здания
+  require-flat-plot: true
+  # Максимально допустимая разница высот на строительной площадке (в блоках)
+  max-allowed-height-diff: 1
+
+  # Проверять ли требование уровня Архитектора при начале/постройке зданий
+  enforce-skill-level: true
+  
+  # Количество опыта Архитектора за каждый размещенный блок по чертежу здания
+  skill-xp-per-block: 15
+  
+  # Процент прочности здания, ниже которого баффы временно отключаются
+  buff-suspension-health-percent: 70.0
+  
+  # Минимальный процент внешних стен постройки, контактирующих с воздухом/травой/листвой
+  # Защита от создания бункеров под землей и замуровывания стен глухими оболочками
+  wall-contact-min-percent: 50.0
+
+  # Интервал (в секундах) регулярного мониторинга и аудита всех построек мира (Watchdog)
+  # Автоматически синхронизирует состояние блоков, восстанавливает сбившиеся голограммы,
+  # переключает завершенные слои, актуализирует статусы (CONSTRUCTING/ACTIVE/DAMAGED) и спасает от сбоев/лага сервера.
+  watchdog-interval-seconds: 30
+
+  # Интервал (в секундах) проверки и наложения эффектов баффов на жителей
+  buff-check-interval-seconds: 5
+
+  # Интервал смены отображаемых блоков в BossBar/Actionbar (секунды)
+  hud-material-cycle-interval-seconds: 5
+  
+  # Радиус действия 1x1 построек (в чанках вокруг здания для жителей города)
+  buff-1x1-chunk-radius: 2
+
+  # Личный кошелек и лимиты наличных денег у жителей
+  wallet:
+    base-limit: 10000.0         # Базовый лимит наличных денег у игрока (без банка / без города)
+    bonus-per-bank: 10000.0     # Прирост лимита за каждое активное здание Банка в городе (суммируется!)
+  
+  # Визуальные и звуковые эффекты
+  particles-enabled: true
+  sound-effects-enabled: true
+
+  # Настройки 3D-голограмм BlockDisplay (Litematica-style)
+  hologram:
+    brightness-block: 15 # 0-15 яркость блока (15 = максимальная видимость, чистые текстуры без затемнения)
+    brightness-sky: 15   # 0-15 яркость неба
+    scale: 1.008         # Масштаб блока (1.008 = монолитный полноразмерный блок как на предыдущем шаге)
+    wireframe:
+      enabled: true          # Сплошные линии подсветки рёбер голограмм (голубым) и посторонних блоков (красным)
+      line-thickness: 0.95   # Плотность и толщина сплошной линии (0.95 = монолитная неоновая линия, как по внешним границам)
+
+messages:
+  prefix: "&6[Архитектура]&r "
+  no-permission: "&cУ вас нет прав на использование этой команды!"
+  not-in-town: "&cВы должны состоять в городе для использования этой функции!"
+  not-mayor-or-builder: "&cТолько мэр или помощник города могут утверждать строительные проекты!"
+  outside-town-bounds: "&cВыделенная территория выходит за пределы границ вашего города!"
+  skill-level-too-low: "&cВаш уровень Архитектора (%level%) ниже требуемого (%required%)!"
+  wonder-already-built: "&4[!] Это Чудо Света уже воздвигнуто городом %town% и заблокировано навсегда!"
+  project-started: "&aПроект «&e%name%&a» утвержден на чанках &f%chunks%&a! Размещайте необходимые блоки."
+  building-completed: "&6&l[ГОРОД]&a Строительство «&e%name%&a» завершено на 100%%! Баффы активированы!"
+  building-damaged: "&c&l[ОСАДА]&e Здание «&6%name%&e» повреждено (%health%%)! Баффы отключены до починки!"
+  building-repaired: "&aЗдание «&e%name%&a» восстановлено до 100%%! Баффы снова действуют."
+
+
+
+
+# Настройки меню (/builds) для поддержки ресурспаков
+gui:
+  title: "&f\uE000\uE001\uE002&fЧертежи и постройки" # Заголовок инвентаря. Используйте символ ресурспака или обычный текст
+  size: 54
+  fill-empty-slots: false # Установите false, чтобы не заполнять пустоты стеклом (для кастомных текстур)
+  
+  # Настройка расположения и внешнего вида кнопок
+  items:
+    town-info:
+      slot: 2
+      material: BEACON
+      custom-model-data: 0
+    catalog-header:
+      slot: 4
+      material: KNOWLEDGE_BOOK
+      custom-model-data: 0
+    skill-badge:
+      slot: 6
+      material: GOLDEN_PICKAXE
+      custom-model-data: 0
+    active-buildings:
+      slot: 49
+      material: COMPASS
+      custom-model-data: 0
+    close-button:
+      slot: 48
+      material: BARRIER
+      custom-model-data: 0
+    stats-button:
+      slot: 50
+      material: EXPERIENCE_BOTTLE
+      custom-model-data: 0
+    border-particles:
+      slot: 51
+      material: GLOWSTONE_DUST
+      custom-model-data: 0
+    effect-particles:
+      slot: 52
+      material: REDSTONE_TORCH
+      custom-model-data: 0
+
+  # Слоты, в которых будут выводиться чертежи зданий (из buildings.yml)
+  blueprint-slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34]
+
+# Настройки военной системы и Щита Мэрии
+war:
+  enabled: true
+  shield-per-wall: 100.0 # Количество единиц прочности щита Мэрии за каждую построенную стену (2x1)
+  peacetime-invulnerable: true # В мирное время осадный урон не наносится и щит не расходуется

@@ -1,0 +1,19 @@
+name: TownyExplosionUnblocker
+version: 1.1.2
+main: com.towny.explosion.TownyExplosionUnblockerPlugin
+api-version: '1.20'
+depend: [Towny]
+softdepend: [TownySieges, TownyArchitecture, SiegeCannon, Cannons]
+author: TownyArchitectureTeam
+description: Unblocks explosion damage inside Towny town plots strictly for SiegeCannon projectiles while preserving all other protections.
+
+commands:
+  explosionunblocker:
+    description: Manage TownyExplosionUnblocker settings and test cannon detection
+    aliases: [teu, cannonunblocker]
+    permission: townyexplosionunblocker.admin
+
+permissions:
+  townyexplosionunblocker.admin:
+    description: Access to TownyExplosionUnblocker reload and status
+    default: op

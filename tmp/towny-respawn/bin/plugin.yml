@@ -1,0 +1,32 @@
+name: TownyRespawn
+version: 1.1.2
+main: com.towny.respawn.TownyRespawnPlugin
+api-version: 1.20
+description: Multi-Bed Respawn System, In-Game Respawn Selector (/respawn), Bed Renaming & Towny/TownySieges Integration
+author: TownyArchitectureTeam
+softdepend: [Towny, TownySieges, TownyArchitecture, TownyExplosionUnblocker]
+commands:
+  respawn:
+    description: Открывает меню выбора точек возрождения и списка кроватей
+    aliases: [spawns, spawnselect, beds, mybeds]
+    permission: townyrespawn.use
+  townyrespawn:
+    description: Главная администраторская команда плагина TownyRespawn
+    aliases: [trespawn]
+    permission: townyrespawn.admin
+permissions:
+  townyrespawn.use:
+    description: Доступ к выбору респавна и переименованию кроватей
+    default: true
+  townyrespawn.beds.multiple:
+    description: Право на использование нескольких кроватей
+    default: true
+  townyrespawn.beds.rename:
+    description: Право на переименование своих кроватей
+    default: true
+  townyrespawn.beds.color:
+    description: Использование цветовых кодов (&a, &b и т.д.) в названиях кроватей
+    default: op
+  townyrespawn.admin:
+    description: Администраторские права на перезагрузку и управление
+    default: op
