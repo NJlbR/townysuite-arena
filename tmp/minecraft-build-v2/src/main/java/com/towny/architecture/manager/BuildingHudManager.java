@@ -11,7 +11,12 @@ import org.bukkit.*;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Transformation;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import java.util.*;
 
@@ -22,6 +27,7 @@ public class BuildingHudManager {
     private final Map<UUID, Integer> playerTicksHeld = new HashMap<>();
     private final Set<UUID> playersParticlesDisabled = new HashSet<>();
     private final Set<UUID> playersEffectParticlesDisabled = new HashSet<>();
+    private final Map<UUID, Map<String, BlockDisplay>> playerWireframeDisplays = new HashMap<>();
 
     private static Particle dustParticle;
     static {
@@ -81,7 +87,10 @@ public class BuildingHudManager {
     public void renderParticles() {
         boolean particlesEnabled = plugin.getConfig().getBoolean("settings.particles-enabled", true);
         boolean wireframeEnabled = plugin.getConfig().getBoolean("settings.hologram.wireframe.enabled", true);
-        if (!particlesEnabled && !wireframeEnabled) return;
+        if (!particlesEnabled && !wireframeEnabled) {
+            clearWireframeDisplays();
+            return;
+        }
 
         int radiusChunks = plugin.getConfig().getInt("settings.buff-1x1-chunk-radius", 2);
 
@@ -91,11 +100,18 @@ public class BuildingHudManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             boolean showBorders = hasParticlesEnabled(player);
             boolean showEffects = hasEffectParticlesEnabled(player);
-            if (!showBorders && !showEffects) continue;
+            if (!showBorders && !showEffects) {
+                clearWireframeDisplays(player);
+                continue;
+            }
 
             Location pLoc = player.getLocation();
             World pWorld = pLoc.getWorld();
-            if (pWorld == null) continue;
+            if (pWorld == null) {
+                clearWireframeDisplays(player);
+                continue;
+            }
+            Set<String> desiredWireframeSegments = new HashSet<>();
 
             double pX = pLoc.getX();
             double pY = pLoc.getY();
@@ -129,11 +145,11 @@ public class BuildingHudManager {
                 }
 
                 // Hologram & Obstacle layer wireframe edge highlighting (4-cell adjacency rule)
-                if (showBorders && bld.getStatus() == ActiveBuilding.Status.CONSTRUCTING) {
+                if (showBorders && wireframeEnabled && bld.getStatus() == ActiveBuilding.Status.CONSTRUCTING) {
                     BuildingSchematic schem = plugin.getSchematicManager().getSchematic(bld.getBlueprintId());
                     if (schem != null) {
                         if (pX >= bMinX - 48 && pX <= bMaxX + 48 && pZ >= bMinZ - 48 && pZ <= bMaxZ + 48) {
-                            renderLayerWireframes(player, pWorld, bld, schem);
+                            renderLayerWireframes(player, pWorld, bld, schem, desiredWireframeSegments);
                         }
                     }
                 }
@@ -158,6 +174,8 @@ public class BuildingHudManager {
                     }
                 }
             }
+
+            syncWireframeDisplays(player, desiredWireframeSegments);
 
             // 2. Render designated town build plots (Vivid Aqua / Sky Blue - NO yellow!)
             if (showBorders) {
@@ -264,8 +282,6 @@ public class BuildingHudManager {
     private static final byte TYPE_OTHER_LAYER = 2;
     private static final byte TYPE_OBSTACLE = 3;
 
-    private static final Particle.DustOptions DUST_HOLOGRAM = new Particle.DustOptions(Color.fromRGB(60, 190, 239), 0.85f);
-    private static final Particle.DustOptions DUST_OBSTACLE = new Particle.DustOptions(Color.fromRGB(235, 75, 75), 0.85f);
 
     private static String cellKey(int x, int y, int z) {
         return x + "," + y + "," + z;
@@ -386,31 +402,171 @@ public class BuildingHudManager {
         return Math.round(x * 10000.0) + "," + Math.round(y * 10000.0) + "," + Math.round(z * 10000.0);
     }
 
-    private void drawVisibleEdge(Player player, World world, int sourceX, int sourceY, int sourceZ,
-                                 double[] a, double[] b, Particle.DustOptions dust,
-                                 Set<String> drawnParticlePoints, Set<String> opaqueDisplayCells) {
+    private String wireframeSegmentKey(String buildingId, double[] a, double[] b, Color color) {
+        String first = particlePointKey(a[0], a[1], a[2]);
+        String second = particlePointKey(b[0], b[1], b[2]);
+        if (first.compareTo(second) > 0) {
+            String swap = first;
+            first = second;
+            second = swap;
+        }
+        return buildingId + "|" + first + "|" + second + "|" + color.asRGB();
+    }
+
+    private float getWireframeThickness() {
+        double configured = plugin.getConfig().getDouble("settings.hologram.wireframe.line-thickness", 0.035);
+        // Old configs used 0.95 as particle density; map that legacy value to a thin display line.
+        if (configured <= 0.0 || configured > 0.12) return 0.035f;
+        return (float) configured;
+    }
+
+    private void showWireframeSegment(Player player, World world, String buildingId,
+                                      double[] a, double[] b, Color color,
+                                      Set<String> desiredSegments) {
+        String key = wireframeSegmentKey(buildingId, a, b, color);
+        if (!desiredSegments.add(key)) return;
+
+        Map<String, BlockDisplay> playerDisplays = playerWireframeDisplays.computeIfAbsent(
+                player.getUniqueId(), ignored -> new HashMap<>());
+        BlockDisplay existing = playerDisplays.get(key);
+        if (existing != null && existing.isValid() && !existing.isDead()) return;
+
         double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
         double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        int count = Math.max(1, (int) Math.ceil(length / 0.18));
-        for (int i = 0; i <= count; i++) {
-            double t = (double) i / count;
-            double x = a[0] + dx * t;
-            double y = a[1] + dy * t;
-            double z = a[2] + dz * t;
-            String pointKey = particlePointKey(x, y, z);
-            if (drawnParticlePoints.contains(pointKey)) continue;
-            if (hasWireframeLineOfSight(player, world, x, y, z, sourceX, sourceY, sourceZ, opaqueDisplayCells)) {
-                drawnParticlePoints.add(pointKey);
-                player.spawnParticle(dustParticle, x, y, z, 0, 0.0, 0.0, 0.0, 0.0, dust);
+        if (length < 0.005) return;
+
+        float thickness = getWireframeThickness();
+        float scaleX = (float) (Math.abs(dx) > 0.0001 ? length : thickness);
+        float scaleY = (float) (Math.abs(dy) > 0.0001 ? length : thickness);
+        float scaleZ = (float) (Math.abs(dz) > 0.0001 ? length : thickness);
+        float offsetX = Math.abs(dx) > 0.0001 ? 0.0f : -thickness / 2.0f;
+        float offsetY = Math.abs(dy) > 0.0001 ? 0.0f : -thickness / 2.0f;
+        float offsetZ = Math.abs(dz) > 0.0001 ? 0.0f : -thickness / 2.0f;
+        double minX = Math.min(a[0], b[0]);
+        double minY = Math.min(a[1], b[1]);
+        double minZ = Math.min(a[2], b[2]);
+        Location spawnLocation = new Location(world, minX, minY, minZ);
+
+        try {
+            BlockDisplay display = world.spawn(spawnLocation, BlockDisplay.class, entity -> {
+                entity.setBlock(Material.SEA_LANTERN.createBlockData());
+                entity.setBrightness(new Display.Brightness(15, 15));
+                entity.setShadowRadius(0.0f);
+                entity.setShadowStrength(0.0f);
+                entity.setInterpolationDuration(0);
+                entity.setTeleportDuration(0);
+                entity.setTransformation(new Transformation(
+                        new Vector3f(offsetX, offsetY, offsetZ),
+                        new AxisAngle4f(),
+                        new Vector3f(scaleX, scaleY, scaleZ),
+                        new AxisAngle4f()));
+                entity.setGlowColorOverride(color);
+                entity.setGlowing(true);
+                entity.setInvulnerable(true);
+                entity.setPersistent(false);
+                entity.setVisibleByDefault(false);
+            });
+            player.showEntity(plugin, display);
+            playerDisplays.put(key, display);
+        } catch (Exception e) {
+            plugin.getLogger().fine("Не удалось показать контурный сегмент игроку " + player.getName() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Converts the already-culled geometric edge into a player-only glowing BlockDisplay.
+     * Visible intervals are split at occluders so a hologram can never reveal a hidden line.
+     */
+    private void drawVisibleEdge(Player player, World world, String buildingId,
+                                 int sourceX, int sourceY, int sourceZ,
+                                 double[] a, double[] b, Color color,
+                                 Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
+        double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        int intervals = Math.max(1, (int) Math.ceil(length / 0.12));
+        boolean visibleRun = false;
+        double runStart = 0.0;
+
+        for (int i = 0; i < intervals; i++) {
+            double t0 = (double) i / intervals;
+            double t1 = (double) (i + 1) / intervals;
+            double mid = (t0 + t1) / 2.0;
+            boolean visible = true;
+            for (double t : new double[]{t0, mid, t1}) {
+                double px = a[0] + dx * t;
+                double py = a[1] + dy * t;
+                double pz = a[2] + dz * t;
+                if (!hasWireframeLineOfSight(player, world, px, py, pz, sourceX, sourceY, sourceZ, opaqueDisplayCells)) {
+                    visible = false;
+                    break;
+                }
+            }
+
+            if (visible && !visibleRun) {
+                visibleRun = true;
+                runStart = t0;
+            } else if (!visible && visibleRun) {
+                showWireframeSegment(player, world, buildingId,
+                        new double[]{a[0] + dx * runStart, a[1] + dy * runStart, a[2] + dz * runStart},
+                        new double[]{a[0] + dx * t0, a[1] + dy * t0, a[2] + dz * t0},
+                        color, desiredSegments);
+                visibleRun = false;
             }
         }
+        if (visibleRun) {
+            showWireframeSegment(player, world, buildingId,
+                    new double[]{a[0] + dx * runStart, a[1] + dy * runStart, a[2] + dz * runStart},
+                    b, color, desiredSegments);
+        }
+    }
+
+    private void syncWireframeDisplays(Player player, Set<String> desiredSegments) {
+        Map<String, BlockDisplay> playerDisplays = playerWireframeDisplays.get(player.getUniqueId());
+        if (playerDisplays == null) return;
+        Iterator<Map.Entry<String, BlockDisplay>> iterator = playerDisplays.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, BlockDisplay> entry = iterator.next();
+            if (desiredSegments.contains(entry.getKey()) && entry.getValue() != null && entry.getValue().isValid()) continue;
+            BlockDisplay display = entry.getValue();
+            if (display != null && display.isValid()) {
+                player.hideEntity(plugin, display);
+                display.remove();
+            }
+            iterator.remove();
+        }
+        if (playerDisplays.isEmpty()) playerWireframeDisplays.remove(player.getUniqueId());
+    }
+
+    private void clearWireframeDisplays(Player player) {
+        Map<String, BlockDisplay> playerDisplays = playerWireframeDisplays.remove(player.getUniqueId());
+        if (playerDisplays == null) return;
+        for (BlockDisplay display : playerDisplays.values()) {
+            if (display != null && display.isValid()) {
+                player.hideEntity(plugin, display);
+                display.remove();
+            }
+        }
+    }
+
+    private void clearWireframeDisplays() {
+        for (Map.Entry<UUID, Map<String, BlockDisplay>> playerEntry : playerWireframeDisplays.entrySet()) {
+            Player player = Bukkit.getPlayer(playerEntry.getKey());
+            for (BlockDisplay display : playerEntry.getValue().values()) {
+                if (display != null && display.isValid()) {
+                    if (player != null) player.hideEntity(plugin, display);
+                    display.remove();
+                }
+            }
+        }
+        playerWireframeDisplays.clear();
     }
 
     /**
      * Renders only edges belonging to exposed, camera-facing faces. This is a
      * geometric face/visibility calculation, not a fixed top-plane wireframe.
      */
-    private void renderLayerWireframes(Player player, World world, ActiveBuilding bld, BuildingSchematic schem) {
+    private void renderLayerWireframes(Player player, World world, ActiveBuilding bld,
+                                       BuildingSchematic schem, Set<String> desiredSegments) {
         if (bld.getStatus() != ActiveBuilding.Status.CONSTRUCTING) return;
 
         int effectiveWidth = schem.getWidthX();
@@ -427,15 +583,14 @@ public class BuildingHudManager {
         int layerY = bld.getOriginY() + bld.getCurrentLayer();
         Set<String> opaqueDisplayCells = plugin.getHologramDisplayManager().getOpaqueDisplayCellKeys(world);
         Location eye = player.getEyeLocation();
-        Set<String> drawnParticlePoints = new HashSet<>();
 
-        // Each voxel contributes only faces whose neighbor is genuinely air.
-        // A BlockDisplay cell is occupancy even when Bukkit reports AIR beneath it.
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 byte cellType = getCellType(world, bld, schem, x, layerY, z, opaqueDisplayCells);
                 if (cellType != TYPE_HOLOGRAM && cellType != TYPE_OBSTACLE) continue;
-                Particle.DustOptions dust = cellType == TYPE_OBSTACLE ? DUST_OBSTACLE : DUST_HOLOGRAM;
+                Color color = cellType == TYPE_OBSTACLE
+                        ? HologramDisplayManager.GLOW_RED
+                        : HologramDisplayManager.GLOW_BLUE;
 
                 for (int face = 0; face < 6; face++) {
                     int nx = 0, ny = 0, nz = 0;
@@ -468,8 +623,9 @@ public class BuildingHudManager {
                     if (facing <= 0.0001) continue;
 
                     for (int edge = 0; edge < 4; edge++) {
-                        drawVisibleEdge(player, world, x, layerY, z,
-                                vertices[edge], vertices[(edge + 1) % 4], dust, drawnParticlePoints, opaqueDisplayCells);
+                        drawVisibleEdge(player, world, bld.getInstanceId(), x, layerY, z,
+                                vertices[edge], vertices[(edge + 1) % 4], color,
+                                desiredSegments, opaqueDisplayCells);
                     }
                 }
             }
@@ -575,6 +731,7 @@ public class BuildingHudManager {
     }
 
     public void removePlayer(Player player) {
+        clearWireframeDisplays(player);
         BossBar bar = playerBossBars.remove(player.getUniqueId());
         if (bar != null) {
             bar.removePlayer(player);
@@ -587,6 +744,7 @@ public class BuildingHudManager {
     }
 
     public void clearAll() {
+        clearWireframeDisplays();
         for (BossBar bar : playerBossBars.values()) {
             bar.removeAll();
             bar.setVisible(false);
