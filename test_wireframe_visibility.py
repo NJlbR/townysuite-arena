@@ -86,6 +86,18 @@ class WireframeVisibilityTests(unittest.TestCase):
         # conservative non-air physical-block rule.
         self.assertFalse(ray_is_unoccluded(eye, edge, {(1, 0, 0)}))
 
+    def test_wireframe_edges_use_bright_thin_player_only_display_lines(self):
+        hud = HUD_SOURCE.read_text()
+        draw = hud[hud.index("private void drawVisibleEdge"):hud.index("private void syncWireframeDisplays")]
+        config = (ROOT / "tmp/minecraft-build-v2/src/main/resources/config.yml").read_text()
+        self.assertIn("world.spawn(spawnLocation, BlockDisplay.class", hud)
+        self.assertIn("entity.setGlowing(true)", hud)
+        self.assertIn("entity.setGlowColorOverride(color)", hud)
+        self.assertIn("entity.setVisibleByDefault(false)", hud)
+        self.assertIn("player.showEntity(plugin, display)", hud)
+        self.assertNotIn("spawnParticle", draw)
+        self.assertIn("line-thickness: 0.035", config)
+
     def test_rotated_hologram_occupancy_is_world_cell_based(self):
         # Rotating local schematic coordinates changes the display's world cell;
         # the registry must use that actual world cell for ray occlusion.
