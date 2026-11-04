@@ -109,6 +109,13 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertNotIn("spawnParticle", draw)
         self.assertIn("line-thickness: 0.035", config)
 
+    def test_diagonal_wireframe_displays_rotate_a_solid_rod_instead_of_stretching_texture(self):
+        hud = HUD_SOURCE.read_text()
+        self.assertIn("rotationTo(new Vector3f(1.0f, 0.0f, 0.0f), direction)", hud)
+        self.assertIn("rotation.transform(new Vector3f(", hud)
+        self.assertIn("entity.setBlock(Material.WHITE_CONCRETE.createBlockData())", hud)
+        self.assertNotIn("entity.setBlock(Material.SEA_LANTERN.createBlockData())", hud)
+
     def test_non_cubic_blocks_use_collision_shapes_and_plants_get_cross_outlines(self):
         hud = HUD_SOURCE.read_text()
         self.assertIn("data.getCollisionShape(", hud)

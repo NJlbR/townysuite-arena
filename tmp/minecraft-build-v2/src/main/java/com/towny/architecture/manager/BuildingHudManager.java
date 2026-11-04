@@ -18,6 +18,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -441,29 +442,28 @@ public class BuildingHudManager {
         if (length < 0.005) return;
 
         float thickness = getWireframeThickness();
-        float scaleX = (float) (Math.abs(dx) > 0.0001 ? length : thickness);
-        float scaleY = (float) (Math.abs(dy) > 0.0001 ? length : thickness);
-        float scaleZ = (float) (Math.abs(dz) > 0.0001 ? length : thickness);
-        float offsetX = Math.abs(dx) > 0.0001 ? 0.0f : -thickness / 2.0f;
-        float offsetY = Math.abs(dy) > 0.0001 ? 0.0f : -thickness / 2.0f;
-        float offsetZ = Math.abs(dz) > 0.0001 ? 0.0f : -thickness / 2.0f;
-        double minX = Math.min(a[0], b[0]);
-        double minY = Math.min(a[1], b[1]);
-        double minZ = Math.min(a[2], b[2]);
-        Location spawnLocation = new Location(world, minX, minY, minZ);
+        Vector3f direction = new Vector3f((float) dx, (float) dy, (float) dz).normalize();
+        Quaternionf rotation = new Quaternionf().rotationTo(new Vector3f(1.0f, 0.0f, 0.0f), direction);
+        Vector3f translation = rotation.transform(new Vector3f(
+                (float) length / 2.0f, thickness / 2.0f, thickness / 2.0f)).negate();
+        Vector3f scale = new Vector3f((float) length, thickness, thickness);
+        Location spawnLocation = new Location(world,
+                (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0, (a[2] + b[2]) / 2.0);
 
         try {
             BlockDisplay display = world.spawn(spawnLocation, BlockDisplay.class, entity -> {
-                entity.setBlock(Material.SEA_LANTERN.createBlockData());
+                // A flat neutral texture avoids the patterned sea-lantern pixels
+                // showing through as artificial plates on diagonal shape edges.
+                entity.setBlock(Material.WHITE_CONCRETE.createBlockData());
                 entity.setBrightness(new Display.Brightness(15, 15));
                 entity.setShadowRadius(0.0f);
                 entity.setShadowStrength(0.0f);
                 entity.setInterpolationDuration(0);
                 entity.setTeleportDuration(0);
                 entity.setTransformation(new Transformation(
-                        new Vector3f(offsetX, offsetY, offsetZ),
-                        new AxisAngle4f(),
-                        new Vector3f(scaleX, scaleY, scaleZ),
+                        translation,
+                        new AxisAngle4f(rotation),
+                        scale,
                         new AxisAngle4f()));
                 entity.setGlowColorOverride(color);
                 entity.setGlowing(true);
