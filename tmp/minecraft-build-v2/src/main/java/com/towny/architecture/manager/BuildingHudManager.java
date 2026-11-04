@@ -6,6 +6,7 @@ import com.towny.architecture.model.BuildingSchematic;
 import com.towny.architecture.model.SchematicBlock;
 import com.towny.architecture.model.BuildingBlueprint;
 import com.towny.architecture.model.ChunkCoord;
+import com.towny.architecture.util.ModelShapeUtil;
 import com.towny.architecture.util.RussianTranslator;
 import org.bukkit.*;
 import org.bukkit.boss.BarColor;
@@ -585,28 +586,10 @@ public class BuildingHudManager {
         return schematicBlock == null ? null : schematicBlock.getMaterial().createBlockData();
     }
 
-    private boolean isFullCubeShape(Collection<BoundingBox> boxes) {
-        if (boxes.size() != 1) return false;
-        BoundingBox box = boxes.iterator().next();
-        double epsilon = 1.0e-5;
-        return box.getMinX() <= epsilon && box.getMinY() <= epsilon && box.getMinZ() <= epsilon
-                && box.getMaxX() >= 1.0 - epsilon && box.getMaxY() >= 1.0 - epsilon
-                && box.getMaxZ() >= 1.0 - epsilon;
-    }
-
-    private boolean isCrossModelPlant(Material material) {
-        String name = material.name();
-        return name.contains("FLOWER") && !name.equals("CHORUS_FLOWER")
-                && !name.equals("FLOWER_POT") && !name.startsWith("FLOWERING_")
-                || name.endsWith("_TULIP") || name.endsWith("_ORCHID")
-                || name.equals("DANDELION") || name.equals("POPPY") || name.equals("ALLIUM")
-                || name.equals("AZURE_BLUET") || name.equals("OXEYE_DAISY")
-                || name.equals("LILY_OF_THE_VALLEY") || name.equals("TORCHFLOWER")
-                || name.equals("PITCHER_PLANT") || name.equals("SHORT_GRASS")
-                || name.equals("TALL_GRASS") || name.equals("FERN") || name.equals("LARGE_FERN")
-                || name.equals("DEAD_BUSH") || name.endsWith("_SAPLING")
-                || name.endsWith("_MUSHROOM") || name.endsWith("_FUNGUS");
-    }
+    /** Dust spacing used along the edges of a non-cubic model. */
+    private static final double SHAPE_GLOW_SPACING = 0.30;
+    /** Hard cap so a single exotic model can never flood the client with particles. */
+    private static final int SHAPE_GLOW_POINTS_PER_BLOCK = 26;
 
     private void spawnShapeGlowPoint(Player player, int blockX, int blockY, int blockZ,
                                      double localX, double localY, double localZ,
@@ -622,63 +605,173 @@ public class BuildingHudManager {
                 (color.getBlue() + neutral) / 2);
     }
 
-    /** Soft colored dust follows the two actual crossed planes used by flower/grass models. */
-    private void drawCrossModelPlantGlow(Player player, int blockX, int blockY, int blockZ, Color color) {
-        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.14f);
-        for (double u = 0.10; u <= 0.90; u += 0.20) {
-            for (double v = 0.07; v <= 0.93; v += 0.12) {
+    /**
+     * Glow points following the two crossed planes that flower/grass/sapling models use.
+     * Nothing is drawn at the cell borders, so the enclosing cube stays invisible.
+     */
+    private int drawCrossModelPlantGlow(Player player, int blockX, int blockY, int blockZ,
+                                        Color color, int pointBudget) {
+        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.15f);
+        Set<String> emitted = new HashSet<>();
+        int used = 0;
+        for (double u = 0.14; u <= 0.87; u += 0.24) {
+            for (double v = 0.08; v <= 0.94; v += 0.19) {
+                if (used >= pointBudget || used >= SHAPE_GLOW_POINTS_PER_BLOCK) return used;
                 double along = 0.16 + u * 0.68;
                 double height = 0.04 + v * 0.84;
-                spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, along, dust);
-                spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, 1.0 - along, dust);
-            }
-        }
-    }
-
-    /**
-     * Fills the block's own collision volume with a restrained point glow instead
-     * of drawing a cube around a partial/irregular shape.
-     */
-    private void drawCollisionVolumeGlow(Player player, int blockX, int blockY, int blockZ,
-                                         Collection<BoundingBox> boxes, Color color) {
-        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.13f);
-        Set<String> emitted = new HashSet<>();
-        final double maxSpacing = 0.28;
-        for (BoundingBox box : boxes) {
-            int countX = Math.max(1, (int) Math.ceil((box.getMaxX() - box.getMinX()) / maxSpacing));
-            int countY = Math.max(1, (int) Math.ceil((box.getMaxY() - box.getMinY()) / maxSpacing));
-            int countZ = Math.max(1, (int) Math.ceil((box.getMaxZ() - box.getMinZ()) / maxSpacing));
-            for (int ix = 0; ix < countX; ix++) {
-                double px = box.getMinX() + (ix + 0.5) * (box.getMaxX() - box.getMinX()) / countX;
-                for (int iy = 0; iy < countY; iy++) {
-                    double py = box.getMinY() + (iy + 0.5) * (box.getMaxY() - box.getMinY()) / countY;
-                    for (int iz = 0; iz < countZ; iz++) {
-                        double pz = box.getMinZ() + (iz + 0.5) * (box.getMaxZ() - box.getMinZ()) / countZ;
-                        String key = Math.round(px * 1000) + "," + Math.round(py * 1000) + "," + Math.round(pz * 1000);
-                        if (emitted.add(key)) spawnShapeGlowPoint(player, blockX, blockY, blockZ, px, py, pz, dust);
-                    }
+                String keyA = Math.round(along * 32) + "," + Math.round(height * 32) + "," + Math.round(along * 32);
+                if (emitted.add(keyA)) {
+                    spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, along, dust);
+                    used++;
+                }
+                String keyB = Math.round(along * 32) + "," + Math.round(height * 32) + "," + Math.round((1.0 - along) * 32);
+                if (emitted.add(keyB) && used < pointBudget) {
+                    spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, 1.0 - along, dust);
+                    used++;
                 }
             }
         }
+        return used;
+    }
+
+    /**
+     * Glow points that trace the edges of the block's real model volume.
+     *
+     * <p>Stairs, slabs, fences, walls, doors, torches and every other partial model have
+     * their own box set, so the highlight hugs the model instead of the whole cell.
+     * Returns the number of particles that were emitted (for the per-tick budget).</p>
+     */
+    private int drawModelShapeGlow(Player player, int blockX, int blockY, int blockZ,
+                                   Collection<BoundingBox> boxes, Color color, int pointBudget) {
+        if (boxes == null || boxes.isEmpty() || pointBudget <= 0) return 0;
+        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.16f);
+        Set<String> emitted = new HashSet<>();
+        int used = 0;
+
+        for (BoundingBox box : boxes) {
+            double[][] corners = {
+                    {box.getMinX(), box.getMinY(), box.getMinZ()},
+                    {box.getMaxX(), box.getMinY(), box.getMinZ()},
+                    {box.getMinX(), box.getMaxY(), box.getMinZ()},
+                    {box.getMaxX(), box.getMaxY(), box.getMinZ()},
+                    {box.getMinX(), box.getMinY(), box.getMaxZ()},
+                    {box.getMaxX(), box.getMinY(), box.getMaxZ()},
+                    {box.getMinX(), box.getMaxY(), box.getMaxZ()},
+                    {box.getMaxX(), box.getMaxY(), box.getMaxZ()}
+            };
+            int[][] edges = {
+                    {0, 1}, {0, 2}, {0, 4}, {1, 3}, {1, 5}, {2, 3},
+                    {2, 6}, {3, 7}, {4, 5}, {4, 6}, {5, 7}, {6, 7}
+            };
+            for (int[] edge : edges) {
+                if (used >= pointBudget || used >= SHAPE_GLOW_POINTS_PER_BLOCK) return used;
+                used += emitShapeEdge(player, blockX, blockY, blockZ,
+                        corners[edge[0]], corners[edge[1]], dust, emitted,
+                        Math.min(pointBudget - used, SHAPE_GLOW_POINTS_PER_BLOCK - used));
+            }
+        }
+        return used;
+    }
+
+    private int emitShapeEdge(Player player, int blockX, int blockY, int blockZ,
+                              double[] from, double[] to, Particle.DustOptions dust,
+                              Set<String> emitted, int budget) {
+        if (budget <= 0) return 0;
+        double dx = to[0] - from[0];
+        double dy = to[1] - from[1];
+        double dz = to[2] - from[2];
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (length < 1.0e-4) return 0;
+
+        int steps = Math.max(1, (int) Math.ceil(length / SHAPE_GLOW_SPACING));
+        int used = 0;
+        for (int i = 0; i <= steps && used < budget; i++) {
+            double t = (double) i / steps;
+            double px = from[0] + dx * t;
+            double py = from[1] + dy * t;
+            double pz = from[2] + dz * t;
+            String key = Math.round(px * 32) + "," + Math.round(py * 32) + "," + Math.round(pz * 32);
+            if (!emitted.add(key)) continue;
+            spawnShapeGlowPoint(player, blockX, blockY, blockZ, px, py, pz, dust);
+            used++;
+        }
+        return used;
+    }
+
+    /**
+     * Draws the construction highlight of the current layer.
+     *
+     * <p>Blocks that fill their cell keep the classic glowing cube wireframe. Blocks whose
+     * model only occupies a part of the cell - flowers, stairs, slabs, signs, torches,
+     * fences, doors - are never wrapped into a cube: their own model volume is highlighted,
+     * so the glow follows the real Minecraft model.</p>
+     */
+    private void renderLayerWireframes(Player player, World world, ActiveBuilding bld, BuildingSchematic schem,
+                                       Set<String> desiredWireframeSegments) {
+        if (player == null || world == null || bld == null || schem == null) return;
+
+        Location eye = player.getEyeLocation();
+        int layerY = bld.getOriginY() + bld.getCurrentLayer();
+        Set<String> opaqueDisplayCells = plugin.getHologramDisplayManager() != null
+                ? plugin.getHologramDisplayManager().getOpaqueDisplayCellKeys(world)
+                : Collections.emptySet();
+
+        int effW = schem.getWidthX();
+        int effL = schem.getLengthZ();
+        if (bld.getRotationDeg() == 90 || bld.getRotationDeg() == 270) {
+            int swap = effW;
+            effW = effL;
+            effL = swap;
+        }
+
+        int minX = bld.getOriginX() - 1;
+        int maxX = bld.getOriginX() + effW;
+        int minZ = bld.getOriginZ() - 1;
+        int maxZ = bld.getOriginZ() + effL;
+
+        double shapeGlowDistance = plugin.getConfig().getDouble("settings.hologram.wireframe.shape-glow-distance", 40.0);
+        if (shapeGlowDistance < 8.0) shapeGlowDistance = 8.0;
+        double maxShapeDistanceSq = shapeGlowDistance * shapeGlowDistance;
+        int pointBudget = Math.max(64,
+                plugin.getConfig().getInt("settings.hologram.wireframe.shape-glow-points", 900));
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
+
+                byte cellType = getCellType(world, bld, schem, x, layerY, z, opaqueDisplayCells);
+                if (isAirCell(cellType)) continue;
+
+                Color color = cellType == TYPE_OBSTACLE
                         ? HologramDisplayManager.GLOW_RED
                         : HologramDisplayManager.GLOW_BLUE;
 
+                double diffX = eye.getX() - (x + 0.5);
+                double diffY = eye.getY() - (layerY + 0.5);
+                double diffZ = eye.getZ() - (z + 0.5);
+                boolean withinShapeGlowRange = diffX * diffX + diffY * diffY + diffZ * diffZ <= maxShapeDistanceSq;
+
                 BlockData blockData = getWireframeBlockData(cellType, world, bld, schem, x, layerY, z);
                 if (blockData != null) {
-                    if (isCrossModelPlant(blockData.getMaterial())) {
-                        drawCrossModelPlantGlow(player, x, layerY, z, color);
+                    if (ModelShapeUtil.isCrossModel(blockData.getMaterial())) {
+                        // Flowers/grass: glow along their crossed planes, never around the cell.
+                        if (withinShapeGlowRange && pointBudget > 0) {
+                            pointBudget -= drawCrossModelPlantGlow(player, x, layerY, z, color, pointBudget);
+                        }
                         continue;
                     }
-                    try {
-                        Collection<BoundingBox> shape = blockData.getCollisionShape(
-                                new Location(world, x, layerY, z)).getBoundingBoxes();
-                        if (shape.isEmpty()) continue;
-                        if (!isFullCubeShape(shape)) {
-                            drawCollisionVolumeGlow(player, x, layerY, z, shape, color);
-                            continue;
+
+                    List<BoundingBox> modelShape = ModelShapeUtil.modelBoxes(
+                            blockData, new Location(world, x, layerY, z));
+                    if (modelShape.isEmpty()) {
+                        // Unknown model geometry: do not fake a cube the block does not occupy.
+                        continue;
+                    }
+                    if (!ModelShapeUtil.isSolidBlock(modelShape)) {
+                        // Stairs, slabs, signs, torches, fences...: highlight the model itself.
+                        if (withinShapeGlowRange && pointBudget > 0) {
+                            pointBudget -= drawModelShapeGlow(player, x, layerY, z, modelShape, color, pointBudget);
                         }
-                    } catch (Exception ignored) {
-                        // If shape data is unavailable, do not incorrectly glow the enclosing cube.
                         continue;
                     }
                 }

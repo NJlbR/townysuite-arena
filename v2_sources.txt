@@ -18,4 +18,5 @@ tmp/minecraft-build-v2/src/main/java/com/towny/architecture/model/BuildingBluepr
 tmp/minecraft-build-v2/src/main/java/com/towny/architecture/model/BuildingSchematic.java
 tmp/minecraft-build-v2/src/main/java/com/towny/architecture/model/ChunkCoord.java
 tmp/minecraft-build-v2/src/main/java/com/towny/architecture/model/SchematicBlock.java
+tmp/minecraft-build-v2/src/main/java/com/towny/architecture/util/ModelShapeUtil.java
 tmp/minecraft-build-v2/src/main/java/com/towny/architecture/util/RussianTranslator.java
