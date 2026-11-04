@@ -688,6 +688,9 @@ public class BuildingHudManager {
                                   int cellX, int cellY, int cellZ, List<BoundingBox> boxes,
                                   Location eye, Color color, Set<String> desiredSegments,
                                   Set<String> opaqueDisplayCells) {
+        // Hard cap per cell: a single exotic model (or a fence with many arms) may not cost
+        // more than a cube wireframe, so layers of hundreds of blocks stay cheap.
+        int faceBudget = 8;
         for (BoundingBox box : boxes) {
             for (int axis = 0; axis < 3; axis++) {
                 for (int direction = -1; direction <= 1; direction += 2) {
@@ -714,6 +717,7 @@ public class BuildingHudManager {
 
                     drawQuadOutline(player, world, buildingId, cellX, cellY, cellZ, corners,
                             color, desiredSegments, opaqueDisplayCells);
+                    if (--faceBudget <= 0) return;
                 }
             }
         }
