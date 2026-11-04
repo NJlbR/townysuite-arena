@@ -1,0 +1,26 @@
+Synchronized BuildingHudManager.java
+Synchronized HologramDisplayManager.java
+Synchronized ModelShapeUtil.java
+/home/runner/work/townysuite-arena/townysuite-arena/build_and_package.py:35: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  v_data["last_updated"] = datetime.utcnow().isoformat() + "Z"
+tmp/minecraft-build-v2/src/main/java/com/towny/architecture/manager/BuildingHudManager.java:812: error: cannot find symbol
+                                desiredSegments, opaqueDisplayCells);
+                                ^
+  symbol:   variable desiredSegments
+  location: class BuildingHudManager
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: tmp/minecraft-build-v2/src/main/java/com/towny/architecture/command/BuildCommand.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+1 error
+=== Building TownyArchitecture v2.8.14 (Build #6) ===
+Updated plugin.yml version to 2.8.14
+Compiling Java sources...
+Traceback (most recent call last):
+  File "/home/runner/work/townysuite-arena/townysuite-arena/build_and_package.py", line 66, in <module>
+    subprocess.run(javac_cmd, check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['javac', '-cp', 'tmp/minecraft-build-v2/lib/*:tmp/minecraft-build/lib/*:tmp/minecraft-build-v1/lib/*', '-d', 'tmp/minecraft-build-v2/bin', '@v2_sources.txt']' returned non-zero exit status 1.
