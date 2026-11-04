@@ -3,24 +3,74 @@ Synchronized HologramDisplayManager.java
 Synchronized ModelShapeUtil.java
 /home/runner/work/townysuite-arena/townysuite-arena/build_and_package.py:35: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
   v_data["last_updated"] = datetime.utcnow().isoformat() + "Z"
-tmp/minecraft-build-v2/src/main/java/com/towny/architecture/manager/BuildingHudManager.java:812: error: cannot find symbol
-                                desiredSegments, opaqueDisplayCells);
-                                ^
-  symbol:   variable desiredSegments
-  location: class BuildingHudManager
 Note: Some input files use or override a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
 Note: tmp/minecraft-build-v2/src/main/java/com/towny/architecture/command/BuildCommand.java uses unchecked or unsafe operations.
 Note: Recompile with -Xlint:unchecked for details.
-1 error
-=== Building TownyArchitecture v2.8.14 (Build #6) ===
+added manifest
+adding: buildings.yml(in = 7070) (out= 2373)(deflated 66%)
+adding: com/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/TownyArchitecturePlugin.class(in = 20974) (out= 8747)(deflated 58%)
+adding: com/towny/architecture/command/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/command/BuildCommand.class(in = 36233) (out= 15419)(deflated 57%)
+adding: com/towny/architecture/gui/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/gui/BuildsMenuGui.class(in = 26023) (out= 11410)(deflated 56%)
+adding: com/towny/architecture/hook/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/hook/TownyHook.class(in = 7387) (out= 3333)(deflated 54%)
+adding: com/towny/architecture/listener/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/listener/ForgeListener.class(in = 5513) (out= 2590)(deflated 53%)
+adding: com/towny/architecture/listener/TownyPlotEventListener.class(in = 9726) (out= 4180)(deflated 57%)
+adding: com/towny/architecture/manager/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/manager/ArchitectManager$ArchitectStats.class(in = 519) (out= 340)(deflated 34%)
+adding: com/towny/architecture/manager/ArchitectManager.class(in = 11297) (out= 5562)(deflated 50%)
+adding: com/towny/architecture/manager/BuffManager.class(in = 9606) (out= 4767)(deflated 50%)
+adding: com/towny/architecture/manager/BuildingHudManager.class(in = 32341) (out= 15234)(deflated 52%)
+adding: com/towny/architecture/manager/BuildingManager$CandidateArea.class(in = 643) (out= 378)(deflated 41%)
+adding: com/towny/architecture/manager/BuildingManager$ExistingStageAlignment.class(in = 921) (out= 553)(deflated 39%)
+adding: com/towny/architecture/manager/BuildingManager$TerrainFlatnessResult.class(in = 610) (out= 412)(deflated 32%)
+adding: com/towny/architecture/manager/BuildingManager.class(in = 70784) (out= 33309)(deflated 52%)
+adding: com/towny/architecture/manager/ForgeManager$1.class(in = 1817) (out= 992)(deflated 45%)
+adding: com/towny/architecture/manager/ForgeManager$SuperAnvilHolder.class(in = 665) (out= 361)(deflated 45%)
+adding: com/towny/architecture/manager/ForgeManager.class(in = 17238) (out= 7961)(deflated 53%)
+adding: com/towny/architecture/manager/HologramDisplayManager.class(in = 20845) (out= 9421)(deflated 54%)
+adding: com/towny/architecture/manager/SchematicManager.class(in = 120112) (out= 33849)(deflated 71%)
+adding: com/towny/architecture/manager/SiegeDamageManager.class(in = 18013) (out= 8560)(deflated 52%)
+adding: com/towny/architecture/manager/TownHallShieldManager$DamageResult.class(in = 611) (out= 388)(deflated 36%)
+adding: com/towny/architecture/manager/TownHallShieldManager$DamageStatus.class(in = 1382) (out= 633)(deflated 54%)
+adding: com/towny/architecture/manager/TownHallShieldManager.class(in = 5202) (out= 2524)(deflated 51%)
+adding: com/towny/architecture/model/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/model/ActiveBuilding$Status.class(in = 1314) (out= 639)(deflated 51%)
+adding: com/towny/architecture/model/ActiveBuilding.class(in = 10206) (out= 4207)(deflated 58%)
+adding: com/towny/architecture/model/BuildingBlueprint.class(in = 4173) (out= 1833)(deflated 56%)
+adding: com/towny/architecture/model/BuildingSchematic$ExteriorFace.class(in = 1586) (out= 777)(deflated 51%)
+adding: com/towny/architecture/model/BuildingSchematic.class(in = 5675) (out= 2421)(deflated 57%)
+adding: com/towny/architecture/model/ChunkCoord.class(in = 3256) (out= 1553)(deflated 52%)
+adding: com/towny/architecture/model/SchematicBlock.class(in = 1618) (out= 867)(deflated 46%)
+adding: com/towny/architecture/util/(in = 0) (out= 0)(stored 0%)
+adding: com/towny/architecture/util/ModelShapeUtil.class(in = 7916) (out= 4531)(deflated 42%)
+adding: com/towny/architecture/util/RussianTranslator$1.class(in = 984) (out= 554)(deflated 43%)
+adding: com/towny/architecture/util/RussianTranslator.class(in = 6706) (out= 3619)(deflated 46%)
+adding: config.yml(in = 7878) (out= 3303)(deflated 58%)
+adding: plugin.yml(in = 541) (out= 269)(deflated 50%)
+/home/runner/work/townysuite-arena/townysuite-arena/build_and_package.py:162: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "builtAt": datetime.utcnow().strftime("%Y-%m-%d"),
+=== Building TownyArchitecture v2.8.14 (Build #7) ===
 Updated plugin.yml version to 2.8.14
 Compiling Java sources...
-Traceback (most recent call last):
-  File "/home/runner/work/townysuite-arena/townysuite-arena/build_and_package.py", line 66, in <module>
-    subprocess.run(javac_cmd, check=True)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.14/subprocess.py", line 578, in run
-    raise CalledProcessError(retcode, process.args,
-                             output=stdout, stderr=stderr)
-subprocess.CalledProcessError: Command '['javac', '-cp', 'tmp/minecraft-build-v2/lib/*:tmp/minecraft-build/lib/*:tmp/minecraft-build-v1/lib/*', '-d', 'tmp/minecraft-build-v2/bin', '@v2_sources.txt']' returned non-zero exit status 1.
+Java compilation succeeded!
+Copying resources to bin...
+JAR created at tmp/minecraft-build-v2/TownyArchitecture-2.8.14.jar
+Copied JAR to tmp/minecraft-build-v2/TownyArchitecture.jar
+Copied JAR to tmp/minecraft-build-v2/target/TownyArchitecture-2.8.14.jar
+Copied JAR to tmp/bundle-v2/TownyArchitecture-2.8.14.jar
+Copied JAR to dist/TownyArchitecture-2.8.14.jar
+Copied JAR to dist/TownyArchitecture.jar
+Copied JAR to public/TownyArchitecture-2.8.14.jar
+Copied JAR to public/TownyArchitecture-v2.8.14.jar
+Copied JAR to public/TownyArchitecture.jar
+Bundle ZIP created at public/TownyArchitecture-v2.8.14-bundle.zip
+Updating Base64 files...
+Updating PLUGIN_METADATA_V2 in javaSources.ts...
+Build completed successfully: TownyArchitecture v2.8.14 (201.68 KB, SHA256: 8822165c8134f288...)
