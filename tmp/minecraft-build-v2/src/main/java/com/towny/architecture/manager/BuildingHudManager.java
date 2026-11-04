@@ -809,7 +809,7 @@ public class BuildingHudManager {
                     for (int edge = 0; edge < 4; edge++) {
                         drawVisibleEdge(player, world, bld.getInstanceId(), x, layerY, z,
                                 vertices[edge], vertices[(edge + 1) % 4], color,
-                                desiredSegments, opaqueDisplayCells);
+                                desiredWireframeSegments, opaqueDisplayCells);
                     }
                 }
             }
