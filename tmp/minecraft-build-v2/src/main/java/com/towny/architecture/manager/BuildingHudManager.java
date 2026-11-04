@@ -587,9 +587,9 @@ public class BuildingHudManager {
     }
 
     /** Dust spacing used along the edges of a non-cubic model. */
-    private static final double SHAPE_GLOW_SPACING = 0.30;
+    private static final double SHAPE_GLOW_SPACING = 0.40;
     /** Hard cap so a single exotic model can never flood the client with particles. */
-    private static final int SHAPE_GLOW_POINTS_PER_BLOCK = 26;
+    private static final int SHAPE_GLOW_POINTS_PER_BLOCK = 40;
 
     private void spawnShapeGlowPoint(Player player, int blockX, int blockY, int blockZ,
                                      double localX, double localY, double localZ,
@@ -736,7 +736,7 @@ public class BuildingHudManager {
         if (shapeGlowDistance < 8.0) shapeGlowDistance = 8.0;
         double maxShapeDistanceSq = shapeGlowDistance * shapeGlowDistance;
         int pointBudget = Math.max(64,
-                plugin.getConfig().getInt("settings.hologram.wireframe.shape-glow-points", 900));
+                plugin.getConfig().getInt("settings.hologram.wireframe.shape-glow-points", 1200));
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
