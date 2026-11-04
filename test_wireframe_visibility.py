@@ -116,13 +116,18 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertIn("entity.setBlock(Material.WHITE_CONCRETE.createBlockData())", hud)
         self.assertNotIn("entity.setBlock(Material.SEA_LANTERN.createBlockData())", hud)
 
-    def test_non_cubic_blocks_use_collision_shapes_and_plants_get_cross_outlines(self):
+     def test_non_cubic_models_glow_in_their_shape_without_a_cube_outline(self):
         hud = HUD_SOURCE.read_text()
-        self.assertIn("data.getCollisionShape(", hud)
-        self.assertIn("getBoundingBoxes()", hud)
-        self.assertIn("drawShapeWireframe", hud)
-        self.assertIn("drawPlantWireframe", hud)
-        self.assertIn("isCrossModelPlant", hud)
+        renderer = hud[hud.index("private void renderLayerWireframes"):hud.index("public void updateHud")]
+        self.assertIn("getCollisionShape(", renderer)
+        self.assertIn("drawCollisionVolumeGlow", renderer)
+        self.assertIn("drawCrossModelPlantGlow", renderer)
+        self.assertIn("spawnParticle(dustParticle", hud)
+        self.assertIn("if (!isFullCubeShape(shape))", renderer)
+        self.assertNotIn("drawPlantWireframe", hud)
+        self.assertNotIn("drawShapeWireframe", hud)
+        self.assertNotIn("firstPlane", hud)
+        self.assertNotIn("secondPlane", hud)
 
     def test_block_events_refresh_only_changed_cell_and_use_brighter_lines(self):
         display = DISPLAY_SOURCE.read_text()
