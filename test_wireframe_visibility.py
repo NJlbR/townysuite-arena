@@ -25,12 +25,16 @@ def trace_voxels(start, end):
             tmax.append(edge_distance * inv[i])
     visited = []
     for _ in range(512):
-        axis = min(range(3), key=lambda i: tmax[i])
-        next_t = tmax[axis]
-        cell[axis] += step[axis]
-        tmax[axis] += inv[axis]
+        next_t = min(tmax)
         if next_t >= 1:
             break
+        # Match the production supercover traversal: a ray crossing a voxel
+        # corner advances all tied axes and does not visit side cells it only
+        # touches at a zero-area boundary.
+        for axis in range(3):
+            if abs(tmax[axis] - next_t) <= 1e-10:
+                cell[axis] += step[axis]
+                tmax[axis] += inv[axis]
         visited.append(tuple(cell))
     return visited
 
@@ -74,6 +78,13 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertFalse(face_is_exposed("glass"))
         self.assertFalse(face_is_exposed("obstacle"))
 
+    def test_corner_crossings_do_not_false_occlude_side_voxels(self):
+        # The ray passes exactly through grid corners. Side voxels are touched
+        # only at their corners and must not make an otherwise visible edge vanish.
+        visited = trace_voxels((0.5, 0.5, 0.5), (2.5, 2.5, 0.5))
+        self.assertEqual(visited, [(1, 1, 0), (2, 2, 0)])
+        self.assertTrue(ray_is_unoccluded((0.5, 0.5, 0.5), (2.5, 2.5, 0.5), {(1, 0, 0)}))
+
     def test_hologram_occludes_line_of_sight_from_shallow_side_angle(self):
         eye = (0.25, 0.45, 0.5)
         edge = (4.0, 1.0, 0.5)
@@ -98,6 +109,25 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertNotIn("spawnParticle", draw)
         self.assertIn("line-thickness: 0.035", config)
 
+    def test_non_cubic_blocks_use_collision_shapes_and_plants_get_cross_outlines(self):
+        hud = HUD_SOURCE.read_text()
+        self.assertIn("data.getCollisionShape(", hud)
+        self.assertIn("getBoundingBoxes()", hud)
+        self.assertIn("drawShapeWireframe", hud)
+        self.assertIn("drawPlantWireframe", hud)
+        self.assertIn("isCrossModelPlant", hud)
+
+    def test_block_events_refresh_only_changed_cell_and_use_brighter_lines(self):
+        display = DISPLAY_SOURCE.read_text()
+        building_manager = (ROOT / "tmp/minecraft-build-v2/src/main/java/com/towny/architecture/manager/BuildingManager.java").read_text()
+        placed = display[display.index("public boolean handleBlockPlaced"):display.index("public void onWorldBlockChanged")]
+        self.assertNotIn("healOrRefreshLayerHolograms", placed)
+        self.assertIn("GLOW_BLUE = Color.fromRGB(0, 235, 255)", display)
+        self.assertIn("GLOW_RED = Color.fromRGB(255, 35, 45)", display)
+        self.assertIn("runTask(plugin", building_manager)
+        self.assertIn("onWorldBlockChanged(building, changedLoc)", building_manager)
+        self.assertIn("activeDisplays.computeIfAbsent(bld.getInstanceId()", display)
+
     def test_rotated_hologram_occupancy_is_world_cell_based(self):
         # Rotating local schematic coordinates changes the display's world cell;
         # the registry must use that actual world cell for ray occlusion.
@@ -115,7 +145,9 @@ class WireframeVisibilityTests(unittest.TestCase):
         display = DISPLAY_SOURCE.read_text()
         self.assertIn("getOpaqueDisplayCellKeys(world)", hud)
         self.assertIn("getOpaqueDisplayCellKeys(World world)", display)
-        self.assertIn("Amanatides-Woo voxel traversal", hud)
+        self.assertIn("Amanatides-Woo traversal", hud)
+        self.assertIn("tieEpsilon", hud)
+        self.assertIn("isWireframePointVisible", hud)
         self.assertIn("if (facing <= 0.0001) continue", hud)
         self.assertIn("if (!isAirCell(neighborType)) continue", hud)
         self.assertNotIn("double yTop = Y + 1.015", hud)

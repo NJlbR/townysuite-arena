@@ -17,8 +17,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HologramDisplayManager {
-    public static final Color GLOW_BLUE = Color.fromRGB(80, 180, 235); // Soft Sky Blue
-    public static final Color GLOW_RED = Color.fromRGB(225, 85, 85);   // Soft Pastel Coral
+    // Saturated colors stay legible against bright terrain and under shader lighting.
+    public static final Color GLOW_BLUE = Color.fromRGB(0, 235, 255);
+    public static final Color GLOW_RED = Color.fromRGB(255, 35, 45);
 
     private final TownyArchitecturePlugin plugin;
     private final NamespacedKey hologramKey;
@@ -322,9 +323,10 @@ public class HologramDisplayManager {
         if (schem == null) return false;
 
         World world = Bukkit.getWorld(bld.getWorldName());
-        boolean advanced = checkAndAdvanceLayer(bld, schem, world);
-        healOrRefreshLayerHolograms(bld);
-        return advanced;
+        // The placed display was removed above and checkAndAdvanceLayer handles
+        // spawning the next layer. Avoid rescanning every cell on each placement;
+        // the periodic watchdog remains responsible for repairing stale displays.
+        return checkAndAdvanceLayer(bld, schem, world);
     }
 
     /**
@@ -358,6 +360,9 @@ public class HologramDisplayManager {
             // Check if this position is inside the active layer footprint (e.g. foreign block obstacle)
             if (bld.getStatus() == ActiveBuilding.Status.CONSTRUCTING && dy == bld.getCurrentLayer()) {
                 String obsKey = "obs_" + loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ();
+                if (map == null) {
+                    map = activeDisplays.computeIfAbsent(bld.getInstanceId(), k -> new ConcurrentHashMap<>());
+                }
                 if (map != null) {
                     if (wm.isAir() || wm == Material.WATER || wm == Material.LAVA) {
                         BlockDisplay disp = map.remove(obsKey);
