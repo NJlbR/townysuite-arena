@@ -1,10 +1,10 @@
 {
   "major": 2,
   "minor": 8,
-  "patch": 14,
-  "version": "2.8.14",
-  "name": "TownyArchitecture-2.8.14.jar",
-  "release_name": "Soft Shape-Volume Glow for Non-Cubic Blocks (v2.8.14)",
-  "last_updated": "2026-11-04T18:41:32.616080Z",
+  "patch": 15,
+  "version": "2.8.15",
+  "name": "TownyArchitecture-2.8.15.jar",
+  "release_name": "Model-Shaped Layer Highlight & Disappearing Built-Block Hints (v2.8.15)",
+  "last_updated": "2026-11-04T18:56:36.283135Z",
   "build": 9
 }

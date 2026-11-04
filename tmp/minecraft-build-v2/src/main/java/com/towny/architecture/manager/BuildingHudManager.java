@@ -122,61 +122,74 @@ public class BuildingHudManager {
             double pZ = pLoc.getZ();
 
             // 1. Render active building boundaries and effect zones
-            for (ActiveBuilding bld : plugin.getBuildingManager().getActiveBuildings()) {
-                if (!bld.getWorldName().equals(pWorld.getName())) continue;
-                if (bld.getAssignedChunks().isEmpty()) continue;
+            try {
+                for (ActiveBuilding bld : plugin.getBuildingManager().getActiveBuildings()) {
+                    if (!bld.getWorldName().equals(pWorld.getName())) continue;
+                    if (bld.getAssignedChunks().isEmpty()) continue;
 
-                BuildingBlueprint bp = plugin.getBuildingManager().getBlueprint(bld.getBlueprintId());
-                if (bp == null) continue;
+                    BuildingBlueprint bp = plugin.getBuildingManager().getBlueprint(bld.getBlueprintId());
+                    if (bp == null) continue;
 
-                int minCX = Integer.MAX_VALUE, maxCX = Integer.MIN_VALUE;
-                int minCZ = Integer.MAX_VALUE, maxCZ = Integer.MIN_VALUE;
-                for (ChunkCoord c : bld.getAssignedChunks()) {
-                    minCX = Math.min(minCX, c.getX());
-                    maxCX = Math.max(maxCX, c.getX());
-                    minCZ = Math.min(minCZ, c.getZ());
-                    maxCZ = Math.max(maxCZ, c.getZ());
-                }
+                    int minCX = Integer.MAX_VALUE, maxCX = Integer.MIN_VALUE;
+                    int minCZ = Integer.MAX_VALUE, maxCZ = Integer.MIN_VALUE;
+                    for (ChunkCoord c : bld.getAssignedChunks()) {
+                        minCX = Math.min(minCX, c.getX());
+                        maxCX = Math.max(maxCX, c.getX());
+                        minCZ = Math.min(minCZ, c.getZ());
+                        maxCZ = Math.max(maxCZ, c.getZ());
+                    }
 
-                double bMinX = minCX << 4;
-                double bMaxX = (maxCX + 1) << 4;
-                double bMinZ = minCZ << 4;
-                double bMaxZ = (maxCZ + 1) << 4;
+                    double bMinX = minCX << 4;
+                    double bMaxX = (maxCX + 1) << 4;
+                    double bMinZ = minCZ << 4;
+                    double bMaxZ = (maxCZ + 1) << 4;
 
-                // Footprint boundary line along plot perimeter
-                if (showBorders && pX >= bMinX - 50 && pX <= bMaxX + 50 && pZ >= bMinZ - 50 && pZ <= bMaxZ + 50) {
-                    renderSolidLine(player, pWorld, bMinX, bMaxX, bMinZ, bMaxZ, pX, pY, pZ, footprintCyanDust);
-                }
+                    // Footprint boundary line along plot perimeter
+                    if (showBorders && pX >= bMinX - 50 && pX <= bMaxX + 50 && pZ >= bMinZ - 50 && pZ <= bMaxZ + 50) {
+                        renderSolidLine(player, pWorld, bMinX, bMaxX, bMinZ, bMaxZ, pX, pY, pZ, footprintCyanDust);
+                    }
 
-                // Hologram & Obstacle layer wireframe edge highlighting (4-cell adjacency rule)
-                if (showBorders && wireframeEnabled && bld.getStatus() == ActiveBuilding.Status.CONSTRUCTING) {
-                    BuildingSchematic schem = plugin.getSchematicManager().getSchematic(bld.getBlueprintId());
-                    if (schem != null) {
-                        if (pX >= bMinX - 48 && pX <= bMaxX + 48 && pZ >= bMinZ - 48 && pZ <= bMaxZ + 48) {
-                            renderLayerWireframes(player, pWorld, bld, schem, desiredWireframeSegments);
+                    // Hologram & Obstacle layer wireframe edge highlighting (4-cell adjacency rule)
+                    if (showBorders && wireframeEnabled && bld.getStatus() == ActiveBuilding.Status.CONSTRUCTING) {
+                        BuildingSchematic schem = plugin.getSchematicManager().getSchematic(bld.getBlueprintId());
+                        if (schem != null) {
+                            if (pX >= bMinX - 48 && pX <= bMaxX + 48 && pZ >= bMinZ - 48 && pZ <= bMaxZ + 48) {
+                                try {
+                                    renderLayerWireframes(player, pWorld, bld, schem, desiredWireframeSegments);
+                                } catch (Throwable failure) {
+                                    plugin.getLogger().fine("Не удалось подсветить слой постройки "
+                                            + bld.getInstanceId() + ": " + failure.getMessage());
+                                }
+                            }
+                        }
+                    }
+
+                    // C. Buff Zone boundary for 1x1 buildings (Clean, thin, continuous glowing line)
+                    if (showEffects && bp.getChunkWidth() == 1 && bp.getChunkLength() == 1) {
+                        double effMinX = (minCX - radiusChunks) << 4;
+                        double effMaxX = (maxCX + radiusChunks + 1) << 4;
+                        double effMinZ = (minCZ - radiusChunks) << 4;
+                        double effMaxZ = (maxCZ + radiusChunks + 1) << 4;
+
+                        if (pX >= effMinX - 50 && pX <= effMaxX + 50 && pZ >= effMinZ - 50 && pZ <= effMaxZ + 50) {
+                            Color buffColor;
+                            String bpId = bld.getBlueprintId().toLowerCase();
+                            if (bpId.contains("hospital") || bpId.contains("infirmary") || bpId.contains("barracks")) {
+                                buffColor = Color.fromRGB(255, 35, 65); // Vivid Crimson Red
+                            } else {
+                                buffColor = Color.fromRGB(0, 200, 255); // Vivid Electric Cyan
+                            }
+                            Particle.DustOptions effectDust = new Particle.DustOptions(buffColor, 0.95f);
+                            renderSolidLine(player, pWorld, effMinX, effMaxX, effMinZ, effMaxZ, pX, pY, pZ, effectDust);
                         }
                     }
                 }
 
-                // C. Buff Zone boundary for 1x1 buildings (Clean, thin, continuous glowing line)
-                if (showEffects && bp.getChunkWidth() == 1 && bp.getChunkLength() == 1) {
-                    double effMinX = (minCX - radiusChunks) << 4;
-                    double effMaxX = (maxCX + radiusChunks + 1) << 4;
-                    double effMinZ = (minCZ - radiusChunks) << 4;
-                    double effMaxZ = (maxCZ + radiusChunks + 1) << 4;
-
-                    if (pX >= effMinX - 50 && pX <= effMaxX + 50 && pZ >= effMinZ - 50 && pZ <= effMaxZ + 50) {
-                        Color buffColor;
-                        String bpId = bld.getBlueprintId().toLowerCase();
-                        if (bpId.contains("hospital") || bpId.contains("infirmary") || bpId.contains("barracks")) {
-                            buffColor = Color.fromRGB(255, 35, 65); // Vivid Crimson Red
-                        } else {
-                            buffColor = Color.fromRGB(0, 200, 255); // Vivid Electric Cyan
-                        }
-                        Particle.DustOptions effectDust = new Particle.DustOptions(buffColor, 0.95f);
-                        renderSolidLine(player, pWorld, effMinX, effMaxX, effMinZ, effMaxZ, pX, pY, pZ, effectDust);
-                    }
-                }
+            } catch (Throwable failure) {
+                // A broken model/blueprint must never leave stale highlights on the client:
+                // the synchronisation below always removes everything that is not desired.
+                plugin.getLogger().fine("Ошибка отрисовки подсветки слоя для "
+                        + player.getName() + ": " + failure.getMessage());
             }
 
             syncWireframeDisplays(player, desiredWireframeSegments);
@@ -586,126 +599,168 @@ public class BuildingHudManager {
         return schematicBlock == null ? null : schematicBlock.getMaterial().createBlockData();
     }
 
-    /** Dust spacing used along the edges of a non-cubic model. */
-    private static final double SHAPE_GLOW_SPACING = 0.40;
-    /** Hard cap so a single exotic model can never flood the client with particles. */
-    private static final int SHAPE_GLOW_POINTS_PER_BLOCK = 40;
+    private static final double FACE_EPSILON = 1.0e-4;
 
-    private void spawnShapeGlowPoint(Player player, int blockX, int blockY, int blockZ,
-                                     double localX, double localY, double localZ,
-                                     Particle.DustOptions dust) {
-        player.spawnParticle(dustParticle, blockX + localX, blockY + localY, blockZ + localZ,
-                0, 0, 0, 0, 0, dust);
+    private static double boxMin(BoundingBox box, int axis) {
+        return axis == 0 ? box.getMinX() : axis == 1 ? box.getMinY() : box.getMinZ();
     }
 
-    /** Keeps the hue clearly readable in daylight while avoiding a neon look. */
-    private Color softenVolumeGlow(Color color) {
-        int neutral = 96;
-        return Color.fromRGB((color.getRed() + neutral) / 2,
-                (color.getGreen() + neutral) / 2,
-                (color.getBlue() + neutral) / 2);
+    private static double boxMax(BoundingBox box, int axis) {
+        return axis == 0 ? box.getMaxX() : axis == 1 ? box.getMaxY() : box.getMaxZ();
+    }
+
+    private static double facePlane(BoundingBox box, int axis, int direction) {
+        return direction > 0 ? boxMax(box, axis) : boxMin(box, axis);
+    }
+
+    private static boolean isOnCellBoundary(double plane, int direction) {
+        return direction > 0 ? plane >= 1.0 - FACE_EPSILON : plane <= FACE_EPSILON;
     }
 
     /**
-     * Glow points following the two crossed planes that flower/grass/sapling models use.
-     * Nothing is drawn at the cell borders, so the enclosing cube stays invisible.
+     * True when another box of the same model continues behind this face and covers it
+     * completely, i.e. the face is internal to the model and must stay invisible.
      */
-    private int drawCrossModelPlantGlow(Player player, int blockX, int blockY, int blockZ,
-                                        Color color, int pointBudget) {
-        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.15f);
-        Set<String> emitted = new HashSet<>();
-        int used = 0;
-        for (double u = 0.14; u <= 0.87; u += 0.24) {
-            for (double v = 0.08; v <= 0.94; v += 0.19) {
-                if (used >= pointBudget || used >= SHAPE_GLOW_POINTS_PER_BLOCK) return used;
-                double along = 0.16 + u * 0.68;
-                double height = 0.04 + v * 0.84;
-                String keyA = Math.round(along * 32) + "," + Math.round(height * 32) + "," + Math.round(along * 32);
-                if (emitted.add(keyA)) {
-                    spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, along, dust);
-                    used++;
-                }
-                String keyB = Math.round(along * 32) + "," + Math.round(height * 32) + "," + Math.round((1.0 - along) * 32);
-                if (emitted.add(keyB) && used < pointBudget) {
-                    spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, 1.0 - along, dust);
-                    used++;
+    private boolean isFaceCoveredBySibling(Collection<BoundingBox> boxes, BoundingBox box,
+                                           int axis, int direction) {
+        double plane = facePlane(box, axis, direction);
+        for (BoundingBox other : boxes) {
+            if (other == box) continue;
+            boolean continues = direction > 0
+                    ? boxMax(other, axis) > plane + FACE_EPSILON && boxMin(other, axis) <= plane + FACE_EPSILON
+                    : boxMin(other, axis) < plane - FACE_EPSILON && boxMax(other, axis) >= plane - FACE_EPSILON;
+            if (!continues) continue;
+
+            boolean covers = true;
+            for (int otherAxis = 0; otherAxis < 3; otherAxis++) {
+                if (otherAxis == axis) continue;
+                if (boxMin(other, otherAxis) > boxMin(box, otherAxis) + FACE_EPSILON
+                        || boxMax(other, otherAxis) < boxMax(box, otherAxis) - FACE_EPSILON) {
+                    covers = false;
+                    break;
                 }
             }
+            if (covers) return true;
         }
-        return used;
+        return false;
+    }
+
+    private static double[][] faceCorners(BoundingBox box, int axis, double plane) {
+        double minA = boxMin(box, (axis + 1) % 3);
+        double maxA = boxMax(box, (axis + 1) % 3);
+        double minB = boxMin(box, (axis + 2) % 3);
+        double maxB = boxMax(box, (axis + 2) % 3);
+        double[][] corners = new double[4][3];
+        corners[0] = corner(axis, plane, minA, minB);
+        corners[1] = corner(axis, plane, maxA, minB);
+        corners[2] = corner(axis, plane, maxA, maxB);
+        corners[3] = corner(axis, plane, minA, maxB);
+        return corners;
+    }
+
+    private static double[] corner(int axis, double plane, double valueA, double valueB) {
+        if (axis == 0) return new double[]{plane, valueA, valueB};
+        if (axis == 1) return new double[]{valueB, plane, valueA};
+        return new double[]{valueA, valueB, plane};
+    }
+
+    /** Draws the four edges of a quad, offset by the given block cell. */
+    private void drawQuadOutline(Player player, World world, String buildingId,
+                                 int cellX, int cellY, int cellZ, double[][] corners,
+                                 Color color, Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
+        for (int edge = 0; edge < 4; edge++) {
+            double[] from = corners[edge];
+            double[] to = corners[(edge + 1) % 4];
+            drawVisibleEdge(player, world, buildingId, cellX, cellY, cellZ,
+                    new double[]{cellX + from[0], cellY + from[1], cellZ + from[2]},
+                    new double[]{cellX + to[0], cellY + to[1], cellZ + to[2]},
+                    color, desiredSegments, opaqueDisplayCells);
+        }
     }
 
     /**
-     * Glow points that trace the edges of the block's real model volume.
-     *
-     * <p>Stairs, slabs, fences, walls, doors, torches and every other partial model have
-     * their own box set, so the highlight hugs the model instead of the whole cell.
-     * Returns the number of particles that were emitted (for the per-tick budget).</p>
+     * Highlights the real model of a non-cubic block: only the outer faces of its own box
+     * set are outlined, with the same glowing line segments that the cube wireframe uses.
+     * A stair therefore glows along its steps, a slab along its half, a sign along its
+     * panel - the enclosing 1x1x1 cube is never drawn.
      */
-    private int drawModelShapeGlow(Player player, int blockX, int blockY, int blockZ,
-                                   Collection<BoundingBox> boxes, Color color, int pointBudget) {
-        if (boxes == null || boxes.isEmpty() || pointBudget <= 0) return 0;
-        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.16f);
-        Set<String> emitted = new HashSet<>();
-        int used = 0;
-
+    private void drawModelOutline(Player player, World world, String buildingId,
+                                  int cellX, int cellY, int cellZ, List<BoundingBox> boxes,
+                                  Location eye, Color color, Set<String> desiredSegments,
+                                  Set<String> opaqueDisplayCells) {
         for (BoundingBox box : boxes) {
-            double[][] corners = {
-                    {box.getMinX(), box.getMinY(), box.getMinZ()},
-                    {box.getMaxX(), box.getMinY(), box.getMinZ()},
-                    {box.getMinX(), box.getMaxY(), box.getMinZ()},
-                    {box.getMaxX(), box.getMaxY(), box.getMinZ()},
-                    {box.getMinX(), box.getMinY(), box.getMaxZ()},
-                    {box.getMaxX(), box.getMinY(), box.getMaxZ()},
-                    {box.getMinX(), box.getMaxY(), box.getMaxZ()},
-                    {box.getMaxX(), box.getMaxY(), box.getMaxZ()}
-            };
-            int[][] edges = {
-                    {0, 1}, {0, 2}, {0, 4}, {1, 3}, {1, 5}, {2, 3},
-                    {2, 6}, {3, 7}, {4, 5}, {4, 6}, {5, 7}, {6, 7}
-            };
-            for (int[] edge : edges) {
-                if (used >= pointBudget || used >= SHAPE_GLOW_POINTS_PER_BLOCK) return used;
-                used += emitShapeEdge(player, blockX, blockY, blockZ,
-                        corners[edge[0]], corners[edge[1]], dust, emitted,
-                        Math.min(pointBudget - used, SHAPE_GLOW_POINTS_PER_BLOCK - used));
+            for (int axis = 0; axis < 3; axis++) {
+                for (int direction = -1; direction <= 1; direction += 2) {
+                    if (isFaceCoveredBySibling(boxes, box, axis, direction)) continue;
+
+                    double plane = facePlane(box, axis, direction);
+                    if (isOnCellBoundary(plane, direction)) {
+                        int neighbourX = cellX + (axis == 0 ? direction : 0);
+                        int neighbourY = cellY + (axis == 1 ? direction : 0);
+                        int neighbourZ = cellZ + (axis == 2 ? direction : 0);
+                        if (isOpaqueForWireframe(world, neighbourX, neighbourY, neighbourZ, opaqueDisplayCells)) {
+                            continue; // Face buried in the neighbouring block: nothing to draw.
+                        }
+                    }
+
+                    double[][] corners = faceCorners(box, axis, plane);
+                    double faceCentreX = cellX + axisAverage(corners, 0);
+                    double faceCentreY = cellY + axisAverage(corners, 1);
+                    double faceCentreZ = cellZ + axisAverage(corners, 2);
+                    double facing = (eye.getX() - faceCentreX) * (axis == 0 ? direction : 0)
+                            + (eye.getY() - faceCentreY) * (axis == 1 ? direction : 0)
+                            + (eye.getZ() - faceCentreZ) * (axis == 2 ? direction : 0);
+                    if (facing <= FACE_EPSILON) continue;
+
+                    drawQuadOutline(player, world, buildingId, cellX, cellY, cellZ, corners,
+                            color, desiredSegments, opaqueDisplayCells);
+                }
             }
         }
-        return used;
     }
 
-    private int emitShapeEdge(Player player, int blockX, int blockY, int blockZ,
-                              double[] from, double[] to, Particle.DustOptions dust,
-                              Set<String> emitted, int budget) {
-        if (budget <= 0) return 0;
-        double dx = to[0] - from[0];
-        double dy = to[1] - from[1];
-        double dz = to[2] - from[2];
-        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (length < 1.0e-4) return 0;
+    private static double axisAverage(double[][] corners, int axis) {
+        double sum = 0.0;
+        for (double[] corner : corners) sum += corner[axis];
+        return sum / corners.length;
+    }
 
-        int steps = Math.max(1, (int) Math.ceil(length / SHAPE_GLOW_SPACING));
-        int used = 0;
-        for (int i = 0; i <= steps && used < budget; i++) {
-            double t = (double) i / steps;
-            double px = from[0] + dx * t;
-            double py = from[1] + dy * t;
-            double pz = from[2] + dz * t;
-            String key = Math.round(px * 32) + "," + Math.round(py * 32) + "," + Math.round(pz * 32);
-            if (!emitted.add(key)) continue;
-            spawnShapeGlowPoint(player, blockX, blockY, blockZ, px, py, pz, dust);
-            used++;
-        }
-        return used;
+    /**
+     * Flowers, grass, saplings and crops are two crossed vertical planes. Their outline is
+     * drawn along those planes, so the plant itself glows instead of a box around it.
+     */
+    private void drawCrossModelOutline(Player player, World world, String buildingId,
+                                       int cellX, int cellY, int cellZ, Color color,
+                                       Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
+        double low = 0.17;
+        double high = 0.83;
+        double top = 0.85;
+        double[][] firstPlane = {
+                {low, 0.02, low},
+                {high, 0.02, high},
+                {high, top, high},
+                {low, top, low}
+        };
+        double[][] secondPlane = {
+                {low, 0.02, high},
+                {high, 0.02, low},
+                {high, top, low},
+                {low, top, high}
+        };
+        drawQuadOutline(player, world, buildingId, cellX, cellY, cellZ, firstPlane,
+                color, desiredSegments, opaqueDisplayCells);
+        drawQuadOutline(player, world, buildingId, cellX, cellY, cellZ, secondPlane,
+                color, desiredSegments, opaqueDisplayCells);
     }
 
     /**
      * Draws the construction highlight of the current layer.
      *
-     * <p>Blocks that fill their cell keep the classic glowing cube wireframe. Blocks whose
-     * model only occupies a part of the cell - flowers, stairs, slabs, signs, torches,
-     * fences, doors - are never wrapped into a cube: their own model volume is highlighted,
-     * so the glow follows the real Minecraft model.</p>
+     * <p>Only blocks that still have to appear (or foreign blocks that must be broken) are
+     * highlighted - correctly placed blocks are skipped, so their hint disappears the moment
+     * they are built. Blocks that fill their cell keep the classic cube wireframe; blocks
+     * whose model only occupies part of the cell (flowers, stairs, slabs, signs, torches,
+     * fences, doors) are outlined along their own model volume instead.</p>
      */
     private void renderLayerWireframes(Player player, World world, ActiveBuilding bld, BuildingSchematic schem,
                                        Set<String> desiredWireframeSegments) {
@@ -732,52 +787,49 @@ public class BuildingHudManager {
         int minZ = bld.getOriginZ();
         int maxZ = bld.getOriginZ() + effL - 1;
 
-        double shapeGlowDistance = plugin.getConfig().getDouble("settings.hologram.wireframe.shape-glow-distance", 40.0);
-        if (shapeGlowDistance < 8.0) shapeGlowDistance = 8.0;
-        double maxShapeDistanceSq = shapeGlowDistance * shapeGlowDistance;
-        int pointBudget = Math.max(64,
-                plugin.getConfig().getInt("settings.hologram.wireframe.shape-glow-points", 1200));
-
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
 
                 byte cellType = getCellType(world, bld, schem, x, layerY, z, opaqueDisplayCells);
                 if (isAirCell(cellType)) continue;
+                // The block is already placed correctly (or already completed): its hint
+                // must disappear, no matter whether the model fills the cell or not.
+                if (cellType == TYPE_OTHER_LAYER) continue;
 
                 Color color = cellType == TYPE_OBSTACLE
                         ? HologramDisplayManager.GLOW_RED
                         : HologramDisplayManager.GLOW_BLUE;
 
-                double diffX = eye.getX() - (x + 0.5);
-                double diffY = eye.getY() - (layerY + 0.5);
-                double diffZ = eye.getZ() - (z + 0.5);
-                boolean withinShapeGlowRange = diffX * diffX + diffY * diffY + diffZ * diffZ <= maxShapeDistanceSq;
-
                 BlockData blockData = getWireframeBlockData(cellType, world, bld, schem, x, layerY, z);
+                boolean modelHandled = false;
                 if (blockData != null) {
-                    if (ModelShapeUtil.isCrossModel(blockData.getMaterial())) {
-                        // Flowers/grass: glow along their crossed planes, never around the cell.
-                        if (withinShapeGlowRange && pointBudget > 0) {
-                            pointBudget -= drawCrossModelPlantGlow(player, x, layerY, z, color, pointBudget);
+                    try {
+                        if (ModelShapeUtil.isCrossModel(blockData.getMaterial())) {
+                            drawCrossModelOutline(player, world, bld.getInstanceId(), x, layerY, z,
+                                    color, desiredWireframeSegments, opaqueDisplayCells);
+                            modelHandled = true;
+                        } else {
+                            List<BoundingBox> modelShape = ModelShapeUtil.modelBoxes(
+                                    blockData, new Location(world, x, layerY, z));
+                            if (modelShape.isEmpty()) {
+                                // Unknown model geometry: never fake a cube the block does not occupy.
+                                modelHandled = true;
+                            } else if (!ModelShapeUtil.isSolidBlock(modelShape)) {
+                                // Stairs, slabs, signs, torches, fences...: outline the model itself.
+                                drawModelOutline(player, world, bld.getInstanceId(), x, layerY, z,
+                                        modelShape, eye, color, desiredWireframeSegments, opaqueDisplayCells);
+                                modelHandled = true;
+                            }
                         }
-                        continue;
-                    }
-
-                    List<BoundingBox> modelShape = ModelShapeUtil.modelBoxes(
-                            blockData, new Location(world, x, layerY, z));
-                    if (modelShape.isEmpty()) {
-                        // Unknown model geometry: do not fake a cube the block does not occupy.
-                        continue;
-                    }
-                    if (!ModelShapeUtil.isSolidBlock(modelShape)) {
-                        // Stairs, slabs, signs, torches, fences...: highlight the model itself.
-                        if (withinShapeGlowRange && pointBudget > 0) {
-                            pointBudget -= drawModelShapeGlow(player, x, layerY, z, modelShape, color, pointBudget);
-                        }
-                        continue;
+                    } catch (Throwable failure) {
+                        // A single exotic model must never break the whole layer highlight;
+                        // the cell falls back to the classic cube outline instead of vanishing.
+                        plugin.getLogger().fine("Не удалось построить контур блока " + blockData.getMaterial()
+                                + " в " + x + "," + layerY + "," + z + ": " + failure.getMessage());
                     }
                 }
+                if (modelHandled) continue;
 
                 for (int face = 0; face < 6; face++) {
                     int nx = 0, ny = 0, nz = 0;
