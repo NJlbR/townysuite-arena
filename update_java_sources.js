@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const sourceMap = [
   ['tmp/minecraft-build-v2/src/main/java/com/towny/architecture/manager/BuildingHudManager.java', 'BuildingHudManager.java'],
   ['tmp/minecraft-build-v2/src/main/java/com/towny/architecture/manager/HologramDisplayManager.java', 'HologramDisplayManager.java'],
+  ['tmp/minecraft-build-v2/src/main/java/com/towny/architecture/util/ModelShapeUtil.java', 'ModelShapeUtil.java'],
 ];
 const sourceFile = 'src/data/javaSources.ts';
 let text = fs.readFileSync(sourceFile, 'utf8');

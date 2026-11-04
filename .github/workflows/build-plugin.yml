@@ -1,0 +1,54 @@
+name: Build TownyArchitecture plugin
+
+# Compiles the plugin sources in tmp/minecraft-build-v2, packages the JAR/bundle and
+# publishes the generated artifacts back to the branch that triggered the build.
+on:
+  push:
+    branches:
+      - 'arena/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plugin-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build plugin JAR, bundle and site metadata
+        run: |
+          set -o pipefail
+          python3 build_and_package.py 2>&1 | tee "${RUNNER_TEMP}/build-log.txt"
+
+      - name: Commit generated artifacts
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No artifact changes to commit"
+            exit 0
+          fi
+          git commit -m "Build TownyArchitecture plugin JAR [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
