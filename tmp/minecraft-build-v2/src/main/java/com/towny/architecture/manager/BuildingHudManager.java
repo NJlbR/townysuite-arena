@@ -596,9 +596,9 @@ public class BuildingHudManager {
 
     private boolean isCrossModelPlant(Material material) {
         String name = material.name();
-        boolean flowerCross = name.contains("FLOWER") && !name.equals("CHORUS_FLOWER")
-                && !name.equals("FLOWER_POT") && !name.startsWith("FLOWERING_");
-        return flowerCross || name.endsWith("_TULIP") || name.endsWith("_ORCHID")
+        return name.contains("FLOWER") && !name.equals("CHORUS_FLOWER")
+                && !name.equals("FLOWER_POT") && !name.startsWith("FLOWERING_")
+                || name.endsWith("_TULIP") || name.endsWith("_ORCHID")
                 || name.equals("DANDELION") || name.equals("POPPY") || name.equals("ALLIUM")
                 || name.equals("AZURE_BLUET") || name.equals("OXEYE_DAISY")
                 || name.equals("LILY_OF_THE_VALLEY") || name.equals("TORCHFLOWER")
