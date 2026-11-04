@@ -38,7 +38,7 @@ jobs:
       - name: Build plugin JAR, bundle and site metadata
         run: |
           set -o pipefail
-          python3 build_and_package.py 2>&1 | tee build-log.txt
+          python3 build_and_package.py 2>&1 | tee "${RUNNER_TEMP}/build-log.txt"
 
       - name: Commit generated artifacts
         if: always()

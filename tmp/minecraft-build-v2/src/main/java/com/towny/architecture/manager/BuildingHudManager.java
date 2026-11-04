@@ -598,8 +598,9 @@ public class BuildingHudManager {
                 0, 0, 0, 0, 0, dust);
     }
 
+    /** Keeps the hue clearly readable in daylight while avoiding a neon look. */
     private Color softenVolumeGlow(Color color) {
-        int neutral = 160;
+        int neutral = 96;
         return Color.fromRGB((color.getRed() + neutral) / 2,
                 (color.getGreen() + neutral) / 2,
                 (color.getBlue() + neutral) / 2);
@@ -724,10 +725,12 @@ public class BuildingHudManager {
             effL = swap;
         }
 
-        int minX = bld.getOriginX() - 1;
-        int maxX = bld.getOriginX() + effW;
-        int minZ = bld.getOriginZ() - 1;
-        int maxZ = bld.getOriginZ() + effL;
+        // Only cells of the building foot print are highlighted: neighbouring terrain
+        // must never be painted as an obstacle of this layer.
+        int minX = bld.getOriginX();
+        int maxX = bld.getOriginX() + effW - 1;
+        int minZ = bld.getOriginZ();
+        int maxZ = bld.getOriginZ() + effL - 1;
 
         double shapeGlowDistance = plugin.getConfig().getDouble("settings.hologram.wireframe.shape-glow-distance", 40.0);
         if (shapeGlowDistance < 8.0) shapeGlowDistance = 8.0;
