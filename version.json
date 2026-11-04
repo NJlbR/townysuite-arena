@@ -1,9 +1,10 @@
 {
   "major": 2,
   "minor": 8,
-  "patch": 11,
-  "version": "2.8.11",
-  "name": "TownyArchitecture-2.8.11.jar",
-  "release_name": "Bright Thin Glowing BlockDisplay Wireframes (v2.8.11)",
-  "last_updated": "2026-11-03T00:00:00Z"
+  "patch": 12,
+  "version": "2.8.12",
+  "name": "TownyArchitecture-2.8.12.jar",
+  "release_name": "Reliable Bright Wireframe Edges and Faster Holograms (v2.8.12)",
+  "last_updated": "2026-11-04T16:40:03.031588Z",
+  "build": 2
 }

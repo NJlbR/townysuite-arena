@@ -14,6 +14,8 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
@@ -373,24 +375,27 @@ public class BuildingHudManager {
         double maxY = dy == 0.0 ? Double.POSITIVE_INFINITY : ((stepY > 0 ? by + 1.0 - eye.getY() : eye.getY() - by) * invY);
         double maxZ = dz == 0.0 ? Double.POSITIVE_INFINITY : ((stepZ > 0 ? bz + 1.0 - eye.getZ() : eye.getZ() - bz) * invZ);
 
-        // Amanatides-Woo voxel traversal: unlike coarse ray sampling, this cannot
-        // skip a one-block hologram even on a shallow/diagonal viewing angle.
+        // Amanatides-Woo traversal. Advance every axis crossed at the same ray
+        // parameter together: checking side voxels one-by-one at an exact corner
+        // falsely occludes edges from oblique camera angles.
+        final double tieEpsilon = 1.0e-10;
         for (int traversed = 0; traversed < 512; traversed++) {
-            double nextT;
-            if (maxX <= maxY && maxX <= maxZ) {
+            double nextT = Math.min(maxX, Math.min(maxY, maxZ));
+            if (nextT >= 1.0) return true;
+
+            if (Math.abs(maxX - nextT) <= tieEpsilon) {
                 bx += stepX;
-                nextT = maxX;
                 maxX += invX;
-            } else if (maxY <= maxZ) {
+            }
+            if (Math.abs(maxY - nextT) <= tieEpsilon) {
                 by += stepY;
-                nextT = maxY;
                 maxY += invY;
-            } else {
+            }
+            if (Math.abs(maxZ - nextT) <= tieEpsilon) {
                 bz += stepZ;
-                nextT = maxZ;
                 maxZ += invZ;
             }
-            if (nextT >= 1.0) return true;
+
             // The target block itself is the surface being outlined, not an occluder.
             if (bx == sourceX && by == sourceY && bz == sourceZ) continue;
             if (isOpaqueForWireframe(world, bx, by, bz, opaqueDisplayCells)) return false;
@@ -473,6 +478,15 @@ public class BuildingHudManager {
         }
     }
 
+    private boolean isWireframePointVisible(Player player, World world, double[] start,
+                                            double dx, double dy, double dz, double t,
+                                            int sourceX, int sourceY, int sourceZ,
+                                            Set<String> opaqueDisplayCells) {
+        return hasWireframeLineOfSight(player, world,
+                start[0] + dx * t, start[1] + dy * t, start[2] + dz * t,
+                sourceX, sourceY, sourceZ, opaqueDisplayCells);
+    }
+
     /**
      * Converts the already-culled geometric edge into a player-only glowing BlockDisplay.
      * Visible intervals are split at occluders so a hologram can never reveal a hidden line.
@@ -490,17 +504,17 @@ public class BuildingHudManager {
         for (int i = 0; i < intervals; i++) {
             double t0 = (double) i / intervals;
             double t1 = (double) (i + 1) / intervals;
+            // Test interior points, not exact vertices: a ray to a shared voxel
+            // boundary can touch an opaque neighbor without entering it.
+            double quarter = t0 + (t1 - t0) * 0.25;
             double mid = (t0 + t1) / 2.0;
-            boolean visible = true;
-            for (double t : new double[]{t0, mid, t1}) {
-                double px = a[0] + dx * t;
-                double py = a[1] + dy * t;
-                double pz = a[2] + dz * t;
-                if (!hasWireframeLineOfSight(player, world, px, py, pz, sourceX, sourceY, sourceZ, opaqueDisplayCells)) {
-                    visible = false;
-                    break;
-                }
-            }
+            double threeQuarter = t0 + (t1 - t0) * 0.75;
+            boolean visible = isWireframePointVisible(player, world, a, dx, dy, dz, quarter,
+                    sourceX, sourceY, sourceZ, opaqueDisplayCells)
+                    && isWireframePointVisible(player, world, a, dx, dy, dz, mid,
+                    sourceX, sourceY, sourceZ, opaqueDisplayCells)
+                    && isWireframePointVisible(player, world, a, dx, dy, dz, threeQuarter,
+                    sourceX, sourceY, sourceZ, opaqueDisplayCells);
 
             if (visible && !visibleRun) {
                 visibleRun = true;
@@ -561,6 +575,133 @@ public class BuildingHudManager {
         playerWireframeDisplays.clear();
     }
 
+    private BlockData getWireframeBlockData(byte cellType, World world, ActiveBuilding bld,
+                                            BuildingSchematic schem, int x, int y, int z) {
+        if (cellType == TYPE_OBSTACLE) {
+            return world.getBlockAt(x, y, z).getBlockData();
+        }
+        int[] local = BuildingManager.unrotateRelativeCoords(
+                x - bld.getOriginX(), z - bld.getOriginZ(), bld.getRotationDeg(),
+                schem.getWidthX(), schem.getLengthZ());
+        SchematicBlock block = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
+        return block == null ? null : block.getMaterial().createBlockData();
+    }
+
+    private boolean isFullCubeShape(Collection<BoundingBox> boxes) {
+        if (boxes.size() != 1) return false;
+        BoundingBox box = boxes.iterator().next();
+        double epsilon = 1.0e-5;
+        return box.getMinX() <= epsilon && box.getMinY() <= epsilon && box.getMinZ() <= epsilon
+                && box.getMaxX() >= 1.0 - epsilon && box.getMaxY() >= 1.0 - epsilon
+                && box.getMaxZ() >= 1.0 - epsilon;
+    }
+
+    private boolean isCrossModelPlant(Material material) {
+        String name = material.name();
+        boolean flowerCross = name.contains("FLOWER") && !name.equals("CHORUS_FLOWER")
+                && !name.equals("FLOWER_POT") && !name.startsWith("FLOWERING_");
+        return flowerCross || name.endsWith("_TULIP") || name.endsWith("_ORCHID")
+                || name.equals("DANDELION") || name.equals("POPPY") || name.equals("ALLIUM")
+                || name.equals("AZURE_BLUET") || name.equals("OXEYE_DAISY")
+                || name.equals("LILY_OF_THE_VALLEY") || name.equals("TORCHFLOWER")
+                || name.equals("PITCHER_PLANT") || name.equals("SHORT_GRASS")
+                || name.equals("TALL_GRASS") || name.equals("FERN") || name.equals("LARGE_FERN")
+                || name.equals("DEAD_BUSH") || name.endsWith("_SAPLING")
+                || name.endsWith("_MUSHROOM") || name.endsWith("_FUNGUS");
+    }
+
+    private void drawPlantWireframe(Player player, World world, String buildingId,
+                                    int sourceX, int sourceY, int sourceZ, Color color,
+                                    Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
+        double[][] firstPlane = {{sourceX + 0.18, sourceY, sourceZ + 0.18},
+                {sourceX + 0.18, sourceY + 0.85, sourceZ + 0.18},
+                {sourceX + 0.82, sourceY + 0.85, sourceZ + 0.82},
+                {sourceX + 0.82, sourceY, sourceZ + 0.82}};
+        double[][] secondPlane = {{sourceX + 0.18, sourceY, sourceZ + 0.82},
+                {sourceX + 0.18, sourceY + 0.85, sourceZ + 0.82},
+                {sourceX + 0.82, sourceY + 0.85, sourceZ + 0.18},
+                {sourceX + 0.82, sourceY, sourceZ + 0.18}};
+        Location eye = player.getEyeLocation();
+        drawPlantPlane(player, world, buildingId, sourceX, sourceY, sourceZ, firstPlane,
+                1.0, 0.0, -1.0, eye, color, desiredSegments, opaqueDisplayCells);
+        drawPlantPlane(player, world, buildingId, sourceX, sourceY, sourceZ, secondPlane,
+                1.0, 0.0, 1.0, eye, color, desiredSegments, opaqueDisplayCells);
+    }
+
+    private void drawPlantPlane(Player player, World world, String buildingId,
+                                int sourceX, int sourceY, int sourceZ, double[][] vertices,
+                                double nx, double ny, double nz, Location eye, Color color,
+                                Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
+        double cx = (vertices[0][0] + vertices[2][0]) * 0.5;
+        double cy = (vertices[0][1] + vertices[2][1]) * 0.5;
+        double cz = (vertices[0][2] + vertices[2][2]) * 0.5;
+        if ((eye.getX() - cx) * nx + (eye.getY() - cy) * ny + (eye.getZ() - cz) * nz <= 0.0001) return;
+        for (int edge = 0; edge < vertices.length; edge++) {
+            drawVisibleEdge(player, world, buildingId, sourceX, sourceY, sourceZ,
+                    vertices[edge], vertices[(edge + 1) % vertices.length], color,
+                    desiredSegments, opaqueDisplayCells);
+        }
+    }
+
+    private boolean isInsideShape(Collection<BoundingBox> boxes, double x, double y, double z) {
+        for (BoundingBox box : boxes) {
+            if (x > box.getMinX() && x < box.getMaxX()
+                    && y > box.getMinY() && y < box.getMaxY()
+                    && z > box.getMinZ() && z < box.getMaxZ()) return true;
+        }
+        return false;
+    }
+
+    private void drawShapeWireframe(Player player, World world, ActiveBuilding bld,
+                                    BuildingSchematic schem, int x, int y, int z,
+                                    Collection<BoundingBox> boxes, Color color,
+                                    Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
+        Location eye = player.getEyeLocation();
+        final double epsilon = 1.0e-5;
+        for (BoundingBox box : boxes) {
+            double x0 = box.getMinX(), x1 = box.getMaxX();
+            double y0 = box.getMinY(), y1 = box.getMaxY();
+            double z0 = box.getMinZ(), z1 = box.getMaxZ();
+            for (int face = 0; face < 6; face++) {
+                int nx = 0, ny = 0, nz = 0;
+                double planeX = x + (x0 + x1) * 0.5;
+                double planeY = y + (y0 + y1) * 0.5;
+                double planeZ = z + (z0 + z1) * 0.5;
+                double[][] v;
+                switch (face) {
+                    case 0: nx = 1; planeX = x + x1;
+                        v = new double[][]{{x+x1,y+y0,z+z0},{x+x1,y+y1,z+z0},{x+x1,y+y1,z+z1},{x+x1,y+y0,z+z1}}; break;
+                    case 1: nx = -1; planeX = x + x0;
+                        v = new double[][]{{x+x0,y+y0,z+z0},{x+x0,y+y0,z+z1},{x+x0,y+y1,z+z1},{x+x0,y+y1,z+z0}}; break;
+                    case 2: ny = 1; planeY = y + y1;
+                        v = new double[][]{{x+x0,y+y1,z+z0},{x+x0,y+y1,z+z1},{x+x1,y+y1,z+z1},{x+x1,y+y1,z+z0}}; break;
+                    case 3: ny = -1; planeY = y + y0;
+                        v = new double[][]{{x+x0,y+y0,z+z0},{x+x1,y+y0,z+z0},{x+x1,y+y0,z+z1},{x+x0,y+y0,z+z1}}; break;
+                    case 4: nz = 1; planeZ = z + z1;
+                        v = new double[][]{{x+x0,y+y0,z+z1},{x+x1,y+y0,z+z1},{x+x1,y+y1,z+z1},{x+x0,y+y1,z+z1}}; break;
+                    default: nz = -1; planeZ = z + z0;
+                        v = new double[][]{{x+x0,y+y0,z+z0},{x+x0,y+y1,z+z0},{x+x1,y+y1,z+z0},{x+x1,y+y0,z+z0}}; break;
+                }
+                double outwardX = (x0 + x1) * 0.5 + nx * epsilon;
+                double outwardY = (y0 + y1) * 0.5 + ny * epsilon;
+                double outwardZ = (z0 + z1) * 0.5 + nz * epsilon;
+                if (isInsideShape(boxes, outwardX, outwardY, outwardZ)) continue;
+
+                if ((nx == 1 && x1 >= 1.0 - epsilon && !isAirCell(getCellType(world, bld, schem, x+1, y, z, opaqueDisplayCells)))
+                        || (nx == -1 && x0 <= epsilon && !isAirCell(getCellType(world, bld, schem, x-1, y, z, opaqueDisplayCells)))
+                        || (ny == 1 && y1 >= 1.0 - epsilon && !isAirCell(getCellType(world, bld, schem, x, y+1, z, opaqueDisplayCells)))
+                        || (ny == -1 && y0 <= epsilon && !isAirCell(getCellType(world, bld, schem, x, y-1, z, opaqueDisplayCells)))
+                        || (nz == 1 && z1 >= 1.0 - epsilon && !isAirCell(getCellType(world, bld, schem, x, y, z+1, opaqueDisplayCells)))
+                        || (nz == -1 && z0 <= epsilon && !isAirCell(getCellType(world, bld, schem, x, y, z-1, opaqueDisplayCells)))) continue;
+                if ((eye.getX() - planeX) * nx + (eye.getY() - planeY) * ny + (eye.getZ() - planeZ) * nz <= 0.0001) continue;
+                for (int edge = 0; edge < 4; edge++) {
+                    drawVisibleEdge(player, world, bld.getInstanceId(), x, y, z,
+                            v[edge], v[(edge + 1) % 4], color, desiredSegments, opaqueDisplayCells);
+                }
+            }
+        }
+    }
+
     /**
      * Renders only edges belonging to exposed, camera-facing faces. This is a
      * geometric face/visibility calculation, not a fixed top-plane wireframe.
@@ -591,6 +732,26 @@ public class BuildingHudManager {
                 Color color = cellType == TYPE_OBSTACLE
                         ? HologramDisplayManager.GLOW_RED
                         : HologramDisplayManager.GLOW_BLUE;
+
+                try {
+                    BlockData data = getWireframeBlockData(cellType, world, bld, schem, x, layerY, z);
+                    if (data != null && isCrossModelPlant(data.getMaterial())) {
+                        drawPlantWireframe(player, world, bld.getInstanceId(), x, layerY, z,
+                                color, desiredSegments, opaqueDisplayCells);
+                        continue;
+                    }
+                    if (data != null) {
+                        Collection<BoundingBox> shape = data.getCollisionShape(
+                                new Location(world, x, layerY, z)).getBoundingBoxes();
+                        if (!shape.isEmpty() && !isFullCubeShape(shape)) {
+                            drawShapeWireframe(player, world, bld, schem, x, layerY, z,
+                                    shape, color, desiredSegments, opaqueDisplayCells);
+                            continue;
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // Keep the stable cube outline if the server cannot calculate this block's shape.
+                }
 
                 for (int face = 0; face < 6; face++) {
                     int nx = 0, ny = 0, nz = 0;

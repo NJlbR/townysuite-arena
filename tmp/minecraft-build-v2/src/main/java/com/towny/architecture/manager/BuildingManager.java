@@ -1090,7 +1090,15 @@ public class BuildingManager {
         if (schem != null) {
             SchematicBlock sb = schem.getBlock(dx, dy, dz);
             if (sb == null) {
-                // Outside schematic boundaries (e.g. scaffolds or decorations)
+                // Outside schematic cells can still occupy the current layer's footprint.
+                // Refresh just this cell next tick (after Bukkit commits BlockPlaceEvent)
+                // rather than waiting for the periodic full-layer watchdog scan.
+                if (building.getStatus() == ActiveBuilding.Status.CONSTRUCTING
+                        && dy == building.getCurrentLayer()) {
+                    Location changedLoc = loc.clone();
+                    Bukkit.getScheduler().runTask(plugin, () ->
+                            plugin.getHologramDisplayManager().onWorldBlockChanged(building, changedLoc));
+                }
                 return true;
             }
 
