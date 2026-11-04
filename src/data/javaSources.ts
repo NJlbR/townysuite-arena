@@ -153,11 +153,11 @@ export const PLUGIN_METADATA_V1 = {
 
 export const PLUGIN_METADATA_V2 = {
   name: "TownyArchitecture",
-  version: "2.8.14",
-  jarFileName: "TownyArchitecture-2.8.14.jar",
-  bundleFileName: "TownyArchitecture-v2.8.14-bundle.zip",
-  fileSizeFormatted: "201.68 KB",
-  sha256: "9c205ed17d320b355bb58ef5008c707560872048d82c1ee4716583a1bf3a1b7b",
+  version: "2.8.15",
+  jarFileName: "TownyArchitecture-2.8.15.jar",
+  bundleFileName: "TownyArchitecture-v2.8.15-bundle.zip",
+  fileSizeFormatted: "201.98 KB",
+  sha256: "e348d9d0c2c3e1b7722ae064050af14ecead23895f97d724ef77ee58d68c0e86",
   builtAt: "2026-11-04"
 };
 
