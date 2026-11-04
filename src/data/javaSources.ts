@@ -157,7 +157,7 @@ export const PLUGIN_METADATA_V2 = {
   jarFileName: "TownyArchitecture-2.8.14.jar",
   bundleFileName: "TownyArchitecture-v2.8.14-bundle.zip",
   fileSizeFormatted: "201.68 KB",
-  sha256: "bcdb8f65a0f462a9b77aee3377a523be4f3549db83c2e47e61c68962698a382f",
+  sha256: "9c205ed17d320b355bb58ef5008c707560872048d82c1ee4716583a1bf3a1b7b",
   builtAt: "2026-11-04"
 };
 
