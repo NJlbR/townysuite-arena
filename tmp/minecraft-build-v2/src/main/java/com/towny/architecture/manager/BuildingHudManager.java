@@ -577,14 +577,12 @@ public class BuildingHudManager {
 
     private BlockData getWireframeBlockData(byte cellType, World world, ActiveBuilding bld,
                                             BuildingSchematic schem, int x, int y, int z) {
-        if (cellType == TYPE_OBSTACLE) {
-            return world.getBlockAt(x, y, z).getBlockData();
-        }
+        if (cellType == TYPE_OBSTACLE) return world.getBlockAt(x, y, z).getBlockData();
         int[] local = BuildingManager.unrotateRelativeCoords(
                 x - bld.getOriginX(), z - bld.getOriginZ(), bld.getRotationDeg(),
                 schem.getWidthX(), schem.getLengthZ());
-        SchematicBlock block = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
-        return block == null ? null : block.getMaterial().createBlockData();
+        SchematicBlock schematicBlock = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
+        return schematicBlock == null ? null : schematicBlock.getMaterial().createBlockData();
     }
 
     private boolean isFullCubeShape(Collection<BoundingBox> boxes) {
