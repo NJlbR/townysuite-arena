@@ -577,14 +577,12 @@ public class BuildingHudManager {
 
     private BlockData getWireframeBlockData(byte cellType, World world, ActiveBuilding bld,
                                             BuildingSchematic schem, int x, int y, int z) {
-        if (cellType == TYPE_OBSTACLE) {
-            return world.getBlockAt(x, y, z).getBlockData();
-        }
+        if (cellType == TYPE_OBSTACLE) return world.getBlockAt(x, y, z).getBlockData();
         int[] local = BuildingManager.unrotateRelativeCoords(
                 x - bld.getOriginX(), z - bld.getOriginZ(), bld.getRotationDeg(),
                 schem.getWidthX(), schem.getLengthZ());
-        SchematicBlock block = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
-        return block == null ? null : block.getMaterial().createBlockData();
+        SchematicBlock schematicBlock = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
+        return schematicBlock == null ? null : schematicBlock.getMaterial().createBlockData();
     }
 
     private boolean isFullCubeShape(Collection<BoundingBox> boxes) {
@@ -598,9 +596,9 @@ public class BuildingHudManager {
 
     private boolean isCrossModelPlant(Material material) {
         String name = material.name();
-        boolean flowerCross = name.contains("FLOWER") && !name.equals("CHORUS_FLOWER")
-                && !name.equals("FLOWER_POT") && !name.startsWith("FLOWERING_");
-        return flowerCross || name.endsWith("_TULIP") || name.endsWith("_ORCHID")
+        return name.contains("FLOWER") && !name.equals("CHORUS_FLOWER")
+                && !name.equals("FLOWER_POT") && !name.startsWith("FLOWERING_")
+                || name.endsWith("_TULIP") || name.endsWith("_ORCHID")
                 || name.equals("DANDELION") || name.equals("POPPY") || name.equals("ALLIUM")
                 || name.equals("AZURE_BLUET") || name.equals("OXEYE_DAISY")
                 || name.equals("LILY_OF_THE_VALLEY") || name.equals("TORCHFLOWER")
@@ -610,93 +608,55 @@ public class BuildingHudManager {
                 || name.endsWith("_MUSHROOM") || name.endsWith("_FUNGUS");
     }
 
-    private void drawPlantWireframe(Player player, World world, String buildingId,
-                                    int sourceX, int sourceY, int sourceZ, Color color,
-                                    Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
-        double[][] firstPlane = {{sourceX + 0.18, sourceY, sourceZ + 0.18},
-                {sourceX + 0.18, sourceY + 0.85, sourceZ + 0.18},
-                {sourceX + 0.82, sourceY + 0.85, sourceZ + 0.82},
-                {sourceX + 0.82, sourceY, sourceZ + 0.82}};
-        double[][] secondPlane = {{sourceX + 0.18, sourceY, sourceZ + 0.82},
-                {sourceX + 0.18, sourceY + 0.85, sourceZ + 0.82},
-                {sourceX + 0.82, sourceY + 0.85, sourceZ + 0.18},
-                {sourceX + 0.82, sourceY, sourceZ + 0.18}};
-        Location eye = player.getEyeLocation();
-        drawPlantPlane(player, world, buildingId, sourceX, sourceY, sourceZ, firstPlane,
-                1.0, 0.0, -1.0, eye, color, desiredSegments, opaqueDisplayCells);
-        drawPlantPlane(player, world, buildingId, sourceX, sourceY, sourceZ, secondPlane,
-                1.0, 0.0, 1.0, eye, color, desiredSegments, opaqueDisplayCells);
+    private void spawnShapeGlowPoint(Player player, int blockX, int blockY, int blockZ,
+                                     double localX, double localY, double localZ,
+                                     Particle.DustOptions dust) {
+        player.spawnParticle(dustParticle, blockX + localX, blockY + localY, blockZ + localZ,
+                0, 0, 0, 0, 0, dust);
     }
 
-    private void drawPlantPlane(Player player, World world, String buildingId,
-                                int sourceX, int sourceY, int sourceZ, double[][] vertices,
-                                double nx, double ny, double nz, Location eye, Color color,
-                                Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
-        double cx = (vertices[0][0] + vertices[2][0]) * 0.5;
-        double cy = (vertices[0][1] + vertices[2][1]) * 0.5;
-        double cz = (vertices[0][2] + vertices[2][2]) * 0.5;
-        if ((eye.getX() - cx) * nx + (eye.getY() - cy) * ny + (eye.getZ() - cz) * nz <= 0.0001) return;
-        for (int edge = 0; edge < vertices.length; edge++) {
-            drawVisibleEdge(player, world, buildingId, sourceX, sourceY, sourceZ,
-                    vertices[edge], vertices[(edge + 1) % vertices.length], color,
-                    desiredSegments, opaqueDisplayCells);
+    private Color softenVolumeGlow(Color color) {
+        int neutral = 160;
+        return Color.fromRGB((color.getRed() + neutral) / 2,
+                (color.getGreen() + neutral) / 2,
+                (color.getBlue() + neutral) / 2);
+    }
+
+    /** Soft colored dust follows the two actual crossed planes used by flower/grass models. */
+    private void drawCrossModelPlantGlow(Player player, int blockX, int blockY, int blockZ, Color color) {
+        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.14f);
+        for (double u = 0.10; u <= 0.90; u += 0.20) {
+            for (double v = 0.07; v <= 0.93; v += 0.12) {
+                double along = 0.16 + u * 0.68;
+                double height = 0.04 + v * 0.84;
+                spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, along, dust);
+                spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, 1.0 - along, dust);
+            }
         }
     }
 
-    private boolean isInsideShape(Collection<BoundingBox> boxes, double x, double y, double z) {
+    /**
+     * Fills the block's own collision volume with a restrained point glow instead
+     * of drawing a cube around a partial/irregular shape.
+     */
+    private void drawCollisionVolumeGlow(Player player, int blockX, int blockY, int blockZ,
+                                         Collection<BoundingBox> boxes, Color color) {
+        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.13f);
+        Set<String> emitted = new HashSet<>();
+        final double maxSpacing = 0.28;
         for (BoundingBox box : boxes) {
-            if (x > box.getMinX() && x < box.getMaxX()
-                    && y > box.getMinY() && y < box.getMaxY()
-                    && z > box.getMinZ() && z < box.getMaxZ()) return true;
-        }
-        return false;
-    }
-
-    private void drawShapeWireframe(Player player, World world, ActiveBuilding bld,
-                                    BuildingSchematic schem, int x, int y, int z,
-                                    Collection<BoundingBox> boxes, Color color,
-                                    Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
-        Location eye = player.getEyeLocation();
-        final double epsilon = 1.0e-5;
-        for (BoundingBox box : boxes) {
-            double x0 = box.getMinX(), x1 = box.getMaxX();
-            double y0 = box.getMinY(), y1 = box.getMaxY();
-            double z0 = box.getMinZ(), z1 = box.getMaxZ();
-            for (int face = 0; face < 6; face++) {
-                int nx = 0, ny = 0, nz = 0;
-                double planeX = x + (x0 + x1) * 0.5;
-                double planeY = y + (y0 + y1) * 0.5;
-                double planeZ = z + (z0 + z1) * 0.5;
-                double[][] v;
-                switch (face) {
-                    case 0: nx = 1; planeX = x + x1;
-                        v = new double[][]{{x+x1,y+y0,z+z0},{x+x1,y+y1,z+z0},{x+x1,y+y1,z+z1},{x+x1,y+y0,z+z1}}; break;
-                    case 1: nx = -1; planeX = x + x0;
-                        v = new double[][]{{x+x0,y+y0,z+z0},{x+x0,y+y0,z+z1},{x+x0,y+y1,z+z1},{x+x0,y+y1,z+z0}}; break;
-                    case 2: ny = 1; planeY = y + y1;
-                        v = new double[][]{{x+x0,y+y1,z+z0},{x+x0,y+y1,z+z1},{x+x1,y+y1,z+z1},{x+x1,y+y1,z+z0}}; break;
-                    case 3: ny = -1; planeY = y + y0;
-                        v = new double[][]{{x+x0,y+y0,z+z0},{x+x1,y+y0,z+z0},{x+x1,y+y0,z+z1},{x+x0,y+y0,z+z1}}; break;
-                    case 4: nz = 1; planeZ = z + z1;
-                        v = new double[][]{{x+x0,y+y0,z+z1},{x+x1,y+y0,z+z1},{x+x1,y+y1,z+z1},{x+x0,y+y1,z+z1}}; break;
-                    default: nz = -1; planeZ = z + z0;
-                        v = new double[][]{{x+x0,y+y0,z+z0},{x+x0,y+y1,z+z0},{x+x1,y+y1,z+z0},{x+x1,y+y0,z+z0}}; break;
-                }
-                double outwardX = (x0 + x1) * 0.5 + nx * epsilon;
-                double outwardY = (y0 + y1) * 0.5 + ny * epsilon;
-                double outwardZ = (z0 + z1) * 0.5 + nz * epsilon;
-                if (isInsideShape(boxes, outwardX, outwardY, outwardZ)) continue;
-
-                if ((nx == 1 && x1 >= 1.0 - epsilon && !isAirCell(getCellType(world, bld, schem, x+1, y, z, opaqueDisplayCells)))
-                        || (nx == -1 && x0 <= epsilon && !isAirCell(getCellType(world, bld, schem, x-1, y, z, opaqueDisplayCells)))
-                        || (ny == 1 && y1 >= 1.0 - epsilon && !isAirCell(getCellType(world, bld, schem, x, y+1, z, opaqueDisplayCells)))
-                        || (ny == -1 && y0 <= epsilon && !isAirCell(getCellType(world, bld, schem, x, y-1, z, opaqueDisplayCells)))
-                        || (nz == 1 && z1 >= 1.0 - epsilon && !isAirCell(getCellType(world, bld, schem, x, y, z+1, opaqueDisplayCells)))
-                        || (nz == -1 && z0 <= epsilon && !isAirCell(getCellType(world, bld, schem, x, y, z-1, opaqueDisplayCells)))) continue;
-                if ((eye.getX() - planeX) * nx + (eye.getY() - planeY) * ny + (eye.getZ() - planeZ) * nz <= 0.0001) continue;
-                for (int edge = 0; edge < 4; edge++) {
-                    drawVisibleEdge(player, world, bld.getInstanceId(), x, y, z,
-                            v[edge], v[(edge + 1) % 4], color, desiredSegments, opaqueDisplayCells);
+            int countX = Math.max(1, (int) Math.ceil((box.getMaxX() - box.getMinX()) / maxSpacing));
+            int countY = Math.max(1, (int) Math.ceil((box.getMaxY() - box.getMinY()) / maxSpacing));
+            int countZ = Math.max(1, (int) Math.ceil((box.getMaxZ() - box.getMinZ()) / maxSpacing));
+            for (int ix = 0; ix < countX; ix++) {
+                double px = box.getMinX() + (ix + 0.5) * (box.getMaxX() - box.getMinX()) / countX;
+                for (int iy = 0; iy < countY; iy++) {
+                    double py = box.getMinY() + (iy + 0.5) * (box.getMaxY() - box.getMinY()) / countY;
+                    for (int iz = 0; iz < countZ; iz++) {
+                        double pz = box.getMinZ() + (iz + 0.5) * (box.getMaxZ() - box.getMinZ()) / countZ;
+                        String key = Math.round(px * 1000) + "," + Math.round(py * 1000) + "," + Math.round(pz * 1000);
+                        if (emitted.add(key)) spawnShapeGlowPoint(player, blockX, blockY, blockZ, px, py, pz, dust);
+                    }
                 }
             }
         }
@@ -733,24 +693,24 @@ public class BuildingHudManager {
                         ? HologramDisplayManager.GLOW_RED
                         : HologramDisplayManager.GLOW_BLUE;
 
-                try {
-                    BlockData data = getWireframeBlockData(cellType, world, bld, schem, x, layerY, z);
-                    if (data != null && isCrossModelPlant(data.getMaterial())) {
-                        drawPlantWireframe(player, world, bld.getInstanceId(), x, layerY, z,
-                                color, desiredSegments, opaqueDisplayCells);
+                BlockData blockData = getWireframeBlockData(cellType, world, bld, schem, x, layerY, z);
+                if (blockData != null) {
+                    if (isCrossModelPlant(blockData.getMaterial())) {
+                        drawCrossModelPlantGlow(player, x, layerY, z, color);
                         continue;
                     }
-                    if (data != null) {
-                        Collection<BoundingBox> shape = data.getCollisionShape(
+                    try {
+                        Collection<BoundingBox> shape = blockData.getCollisionShape(
                                 new Location(world, x, layerY, z)).getBoundingBoxes();
-                        if (!shape.isEmpty() && !isFullCubeShape(shape)) {
-                            drawShapeWireframe(player, world, bld, schem, x, layerY, z,
-                                    shape, color, desiredSegments, opaqueDisplayCells);
+                        if (shape.isEmpty()) continue;
+                        if (!isFullCubeShape(shape)) {
+                            drawCollisionVolumeGlow(player, x, layerY, z, shape, color);
                             continue;
                         }
+                    } catch (Exception ignored) {
+                        // If shape data is unavailable, do not incorrectly glow the enclosing cube.
+                        continue;
                     }
-                } catch (Exception ignored) {
-                    // Keep the stable cube outline if the server cannot calculate this block's shape.
                 }
 
                 for (int face = 0; face < 6; face++) {
