@@ -40,9 +40,27 @@ def trace_voxels(start, end):
 
 
 def face_is_exposed(neighbor):
-    # Production classification intentionally treats only air (and fluids, which
-    # getCellType maps to AIR) as air; holograms/materials otherwise occupy a cell.
-    return neighbor == "air"
+    # Partial collision shapes do not hide a whole face; only a full voxel does.
+    return neighbor in {"air", "partial"}
+
+
+def ray_hits_aabb(start, end, box_min, box_max):
+    direction = [end[i] - start[i] for i in range(3)]
+    enter, leave = 0.0, 1.0
+    epsilon = 1e-9
+    for axis in range(3):
+        if abs(direction[axis]) < epsilon:
+            if start[axis] <= box_min[axis] + epsilon or start[axis] >= box_max[axis] - epsilon:
+                return False
+            continue
+        first = (box_min[axis] - start[axis]) / direction[axis]
+        last = (box_max[axis] - start[axis]) / direction[axis]
+        if first > last:
+            first, last = last, first
+        enter, leave = max(enter, first), min(leave, last)
+        if leave - enter <= epsilon:
+            return False
+    return leave - enter > epsilon
 
 
 def face_faces_viewer(normal, face_center, eye):
@@ -74,8 +92,9 @@ class WireframeVisibilityTests(unittest.TestCase):
 
     def test_hologram_neighbor_is_not_an_air_gap(self):
         self.assertTrue(face_is_exposed("air"))
+        self.assertTrue(face_is_exposed("partial"))
         self.assertFalse(face_is_exposed("hologram"))
-        self.assertFalse(face_is_exposed("glass"))
+        self.assertFalse(face_is_exposed("full glass"))
         self.assertFalse(face_is_exposed("obstacle"))
 
     def test_corner_crossings_do_not_false_occlude_side_voxels(self):
@@ -84,6 +103,14 @@ class WireframeVisibilityTests(unittest.TestCase):
         visited = trace_voxels((0.5, 0.5, 0.5), (2.5, 2.5, 0.5))
         self.assertEqual(visited, [(1, 1, 0), (2, 2, 0)])
         self.assertTrue(ray_is_unoccluded((0.5, 0.5, 0.5), (2.5, 2.5, 0.5), {(1, 0, 0)}))
+
+    def test_collision_shape_visibility_does_not_treat_partial_blocks_as_full_cubes(self):
+        # A stair/slab-like shape fills only the lower half of its voxel.
+        lower_half = ((1.0, 0.0, 0.0), (2.0, 0.5, 1.0))
+        self.assertTrue(ray_hits_aabb((0.25, 0.25, 0.5), (2.75, 0.25, 0.5), *lower_half))
+        self.assertFalse(ray_hits_aabb((0.25, 0.75, 0.5), (2.75, 0.75, 0.5), *lower_half))
+        # Merely touching the shape boundary is not a positive-volume occlusion.
+        self.assertFalse(ray_hits_aabb((0.25, 0.5, 0.5), (2.75, 0.5, 0.5), *lower_half))
 
     def test_hologram_occludes_line_of_sight_from_shallow_side_angle(self):
         eye = (0.25, 0.45, 0.5)
@@ -120,10 +147,13 @@ class WireframeVisibilityTests(unittest.TestCase):
         hud = HUD_SOURCE.read_text()
         renderer = hud[hud.index("private void renderLayerWireframes"):hud.index("public void updateHud")]
         self.assertIn("getCollisionShape(", renderer)
-        self.assertIn("drawCollisionVolumeGlow", renderer)
-        self.assertIn("drawCrossModelPlantGlow", renderer)
-        self.assertIn("spawnParticle(dustParticle", hud)
-        self.assertIn("if (!isFullCubeShape(shape))", renderer)
+        self.assertIn("showBlockModelGlow", renderer)
+        self.assertIn("entity.setBlock(blockData)", hud)
+        self.assertIn("entity.setGlowing(true)", hud)
+        self.assertIn("if (shape.isEmpty() || !isFullCubeShape(shape))", renderer)
+        self.assertNotIn("drawCollisionVolumeGlow", hud)
+        self.assertNotIn("drawCrossModelPlantGlow", hud)
+        self.assertNotIn("spawnParticle(dustParticle", renderer)
         self.assertNotIn("drawPlantWireframe", hud)
         self.assertNotIn("drawShapeWireframe", hud)
         self.assertNotIn("firstPlane", hud)
@@ -157,11 +187,15 @@ class WireframeVisibilityTests(unittest.TestCase):
         display = DISPLAY_SOURCE.read_text()
         self.assertIn("getOpaqueDisplayCellKeys(world)", hud)
         self.assertIn("getOpaqueDisplayCellKeys(World world)", display)
-        self.assertIn("Amanatides-Woo traversal", hud)
+        self.assertIn("Amanatides-Woo cell traversal", hud)
         self.assertIn("tieEpsilon", hud)
         self.assertIn("isWireframePointVisible", hud)
         self.assertIn("if (facing <= 0.0001) continue", hud)
-        self.assertIn("if (!isAirCell(neighborType)) continue", hud)
+        self.assertIn("isFullCubeCell(world, bld, schem", hud)
+        self.assertIn("x + nx, layerY + ny, z + nz", hud)
+        self.assertIn("rayIntersectsBox(ox, oy, oz", hud)
+        self.assertIn("getCollisionShape(", hud)
+        self.assertNotIn("if (!isAirCell(neighborType)) continue", hud)
         self.assertNotIn("double yTop = Y + 1.015", hud)
         self.assertNotIn("yPillarStart", hud)
 

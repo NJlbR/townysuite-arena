@@ -340,66 +340,165 @@ public class BuildingHudManager {
         return TYPE_OBSTACLE;
     }
 
-    private boolean isAirCell(byte type) {
-        return type == TYPE_AIR;
+    private BlockData getBlockDataAtCell(World world, ActiveBuilding bld, BuildingSchematic schem,
+                                         int x, int y, int z, Set<String> opaqueDisplayCells) {
+        if (y < world.getMinHeight() || y >= world.getMaxHeight()) return null;
+        org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+        Material material = block.getType();
+        if (!material.isAir() && material != Material.WATER && material != Material.LAVA) {
+            return block.getBlockData();
+        }
+        int[] local = BuildingManager.unrotateRelativeCoords(
+                x - bld.getOriginX(), z - bld.getOriginZ(), bld.getRotationDeg(),
+                schem.getWidthX(), schem.getLengthZ());
+        SchematicBlock target = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
+        if (target != null && !bld.isBlockCompleted(local[0], y - bld.getOriginY(), local[1])) {
+            return target.getMaterial().createBlockData();
+        }
+        // A stale/non-schematic display has no model metadata available here.
+        return null;
     }
 
-    private boolean isOpaqueForWireframe(World world, int x, int y, int z, Set<String> opaqueDisplayCells) {
-        if (opaqueDisplayCells.contains(cellKey(x, y, z))) return true;
+    private Collection<BoundingBox> getCellCollisionBoxes(World world, ActiveBuilding bld,
+                                                           BuildingSchematic schem, int x, int y, int z,
+                                                           Set<String> opaqueDisplayCells,
+                                                           Map<String, Collection<BoundingBox>> shapeCache) {
+        String key = cellKey(x, y, z);
+        Collection<BoundingBox> cached = shapeCache.get(key);
+        if (cached != null) return cached;
+        if (y < world.getMinHeight() || y >= world.getMaxHeight()) return Collections.emptyList();
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+            return Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1));
+        }
+        BlockData data = getBlockDataAtCell(world, bld, schem, x, y, z, opaqueDisplayCells);
+        Collection<BoundingBox> boxes;
+        if (data == null) {
+            boxes = opaqueDisplayCells.contains(key)
+                    ? Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1))
+                    : Collections.emptyList();
+        } else {
+            try {
+                boxes = data.getCollisionShape(new Location(world, x, y, z)).getBoundingBoxes();
+            } catch (Exception ignored) {
+                boxes = Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1));
+            }
+        }
+        shapeCache.put(key, boxes);
+        return boxes;
+    }
+
+    private boolean isFullCubeShape(Collection<BoundingBox> boxes) {
+        if (boxes.size() != 1) return false;
+        BoundingBox box = boxes.iterator().next();
+        double epsilon = 1.0e-5;
+        return box.getMinX() <= epsilon && box.getMinY() <= epsilon && box.getMinZ() <= epsilon
+                && box.getMaxX() >= 1.0 - epsilon && box.getMaxY() >= 1.0 - epsilon
+                && box.getMaxZ() >= 1.0 - epsilon;
+    }
+
+    private boolean isFullCubeCell(World world, ActiveBuilding bld, BuildingSchematic schem,
+                                   int x, int y, int z, Set<String> opaqueDisplayCells,
+                                   Map<String, Collection<BoundingBox>> shapeCache) {
         if (y < world.getMinHeight() || y >= world.getMaxHeight()) return false;
-        if (!world.isChunkLoaded(x >> 4, z >> 4)) return true; // Unknown geometry is conservatively occluding.
-        Material material = world.getBlockAt(x, y, z).getType();
-        return !material.isAir() && material != Material.WATER && material != Material.LAVA;
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) return true;
+        return isFullCubeShape(getCellCollisionBoxes(world, bld, schem, x, y, z,
+                opaqueDisplayCells, shapeCache));
     }
 
-    /** True only when no opaque block/display lies between the eye and this point. */
+    private boolean rayIntersectsBox(double ox, double oy, double oz,
+                                     double dx, double dy, double dz,
+                                     double startT, double endT,
+                                     int cellX, int cellY, int cellZ, BoundingBox box) {
+        double minX = cellX + box.getMinX(), maxX = cellX + box.getMaxX();
+        double minY = cellY + box.getMinY(), maxY = cellY + box.getMaxY();
+        double minZ = cellZ + box.getMinZ(), maxZ = cellZ + box.getMaxZ();
+        double enter = startT, exit = endT;
+        double epsilon = 1.0e-9;
+
+        if (Math.abs(dx) < epsilon) {
+            if (ox <= minX + epsilon || ox >= maxX - epsilon) return false;
+        } else {
+            double a = (minX - ox) / dx, b = (maxX - ox) / dx;
+            if (a > b) { double swap = a; a = b; b = swap; }
+            enter = Math.max(enter, a); exit = Math.min(exit, b);
+            if (exit - enter <= epsilon) return false;
+        }
+        if (Math.abs(dy) < epsilon) {
+            if (oy <= minY + epsilon || oy >= maxY - epsilon) return false;
+        } else {
+            double a = (minY - oy) / dy, b = (maxY - oy) / dy;
+            if (a > b) { double swap = a; a = b; b = swap; }
+            enter = Math.max(enter, a); exit = Math.min(exit, b);
+            if (exit - enter <= epsilon) return false;
+        }
+        if (Math.abs(dz) < epsilon) {
+            if (oz <= minZ + epsilon || oz >= maxZ - epsilon) return false;
+        } else {
+            double a = (minZ - oz) / dz, b = (maxZ - oz) / dz;
+            if (a > b) { double swap = a; a = b; b = swap; }
+            enter = Math.max(enter, a); exit = Math.min(exit, b);
+            if (exit - enter <= epsilon) return false;
+        }
+        return exit - enter > epsilon;
+    }
+
+    /** Tests actual block collision boxes along the ray, not whole voxel cells. */
+    private boolean isOpaqueForWireframe(World world, int x, int y, int z,
+                                         double ox, double oy, double oz,
+                                         double dx, double dy, double dz,
+                                         double startT, double endT,
+                                         ActiveBuilding bld, BuildingSchematic schem,
+                                         Set<String> opaqueDisplayCells,
+                                         Map<String, Collection<BoundingBox>> shapeCache) {
+        if (y < world.getMinHeight() || y >= world.getMaxHeight()) return false;
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) return true;
+        Collection<BoundingBox> boxes = getCellCollisionBoxes(world, bld, schem, x, y, z,
+                opaqueDisplayCells, shapeCache);
+        for (BoundingBox box : boxes) {
+            if (rayIntersectsBox(ox, oy, oz, dx, dy, dz, startT, endT, x, y, z, box)) return true;
+        }
+        return false;
+    }
+
+    /** True only when no collision shape lies between the eye and this point. */
     private boolean hasWireframeLineOfSight(Player player, World world, double x, double y, double z,
                                             int sourceX, int sourceY, int sourceZ,
-                                            Set<String> opaqueDisplayCells) {
+                                            ActiveBuilding bld, BuildingSchematic schem,
+                                            Set<String> opaqueDisplayCells,
+                                            Map<String, Collection<BoundingBox>> shapeCache) {
         Location eye = player.getEyeLocation();
-        double dx = x - eye.getX();
-        double dy = y - eye.getY();
-        double dz = z - eye.getZ();
+        double ox = eye.getX(), oy = eye.getY(), oz = eye.getZ();
+        double dx = x - ox, dy = y - oy, dz = z - oz;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (distance > 64.0) return false;
         if (distance < 0.001) return true;
-        int bx = (int) Math.floor(eye.getX());
-        int by = (int) Math.floor(eye.getY());
-        int bz = (int) Math.floor(eye.getZ());
+        int bx = (int) Math.floor(ox), by = (int) Math.floor(oy), bz = (int) Math.floor(oz);
         double invX = dx == 0.0 ? Double.POSITIVE_INFINITY : Math.abs(1.0 / dx);
         double invY = dy == 0.0 ? Double.POSITIVE_INFINITY : Math.abs(1.0 / dy);
         double invZ = dz == 0.0 ? Double.POSITIVE_INFINITY : Math.abs(1.0 / dz);
-        int stepX = Double.compare(dx, 0.0);
-        int stepY = Double.compare(dy, 0.0);
-        int stepZ = Double.compare(dz, 0.0);
-        double maxX = dx == 0.0 ? Double.POSITIVE_INFINITY : ((stepX > 0 ? bx + 1.0 - eye.getX() : eye.getX() - bx) * invX);
-        double maxY = dy == 0.0 ? Double.POSITIVE_INFINITY : ((stepY > 0 ? by + 1.0 - eye.getY() : eye.getY() - by) * invY);
-        double maxZ = dz == 0.0 ? Double.POSITIVE_INFINITY : ((stepZ > 0 ? bz + 1.0 - eye.getZ() : eye.getZ() - bz) * invZ);
+        int stepX = Double.compare(dx, 0.0), stepY = Double.compare(dy, 0.0), stepZ = Double.compare(dz, 0.0);
+        double maxX = dx == 0.0 ? Double.POSITIVE_INFINITY : ((stepX > 0 ? bx + 1.0 - ox : ox - bx) * invX);
+        double maxY = dy == 0.0 ? Double.POSITIVE_INFINITY : ((stepY > 0 ? by + 1.0 - oy : oy - by) * invY);
+        double maxZ = dz == 0.0 ? Double.POSITIVE_INFINITY : ((stepZ > 0 ? bz + 1.0 - oz : oz - bz) * invZ);
 
-        // Amanatides-Woo traversal. Advance every axis crossed at the same ray
-        // parameter together: checking side voxels one-by-one at an exact corner
-        // falsely occludes edges from oblique camera angles.
+        // Amanatides-Woo cell traversal bounds the work, while each cell is
+        // occluding only where its actual VoxelShape intersects the ray.
         final double tieEpsilon = 1.0e-10;
+        double cellEnter = 0.0;
+        boolean firstCell = true;
         for (int traversed = 0; traversed < 512; traversed++) {
             double nextT = Math.min(maxX, Math.min(maxY, maxZ));
+            double cellExit = Math.min(1.0, nextT);
+            if (!firstCell && !(bx == sourceX && by == sourceY && bz == sourceZ)
+                    && isOpaqueForWireframe(world, bx, by, bz, ox, oy, oz, dx, dy, dz,
+                    cellEnter, cellExit, bld, schem, opaqueDisplayCells, shapeCache)) return false;
             if (nextT >= 1.0) return true;
 
-            if (Math.abs(maxX - nextT) <= tieEpsilon) {
-                bx += stepX;
-                maxX += invX;
-            }
-            if (Math.abs(maxY - nextT) <= tieEpsilon) {
-                by += stepY;
-                maxY += invY;
-            }
-            if (Math.abs(maxZ - nextT) <= tieEpsilon) {
-                bz += stepZ;
-                maxZ += invZ;
-            }
-
-            // The target block itself is the surface being outlined, not an occluder.
-            if (bx == sourceX && by == sourceY && bz == sourceZ) continue;
-            if (isOpaqueForWireframe(world, bx, by, bz, opaqueDisplayCells)) return false;
+            if (Math.abs(maxX - nextT) <= tieEpsilon) { bx += stepX; maxX += invX; }
+            if (Math.abs(maxY - nextT) <= tieEpsilon) { by += stepY; maxY += invY; }
+            if (Math.abs(maxZ - nextT) <= tieEpsilon) { bz += stepZ; maxZ += invZ; }
+            cellEnter = nextT;
+            firstCell = false;
         }
         return false;
     }
@@ -481,10 +580,12 @@ public class BuildingHudManager {
     private boolean isWireframePointVisible(Player player, World world, double[] start,
                                             double dx, double dy, double dz, double t,
                                             int sourceX, int sourceY, int sourceZ,
-                                            Set<String> opaqueDisplayCells) {
+                                            ActiveBuilding bld, BuildingSchematic schem,
+                                            Set<String> opaqueDisplayCells,
+                                            Map<String, Collection<BoundingBox>> shapeCache) {
         return hasWireframeLineOfSight(player, world,
                 start[0] + dx * t, start[1] + dy * t, start[2] + dz * t,
-                sourceX, sourceY, sourceZ, opaqueDisplayCells);
+                sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache);
     }
 
     /**
@@ -494,7 +595,9 @@ public class BuildingHudManager {
     private void drawVisibleEdge(Player player, World world, String buildingId,
                                  int sourceX, int sourceY, int sourceZ,
                                  double[] a, double[] b, Color color,
-                                 Set<String> desiredSegments, Set<String> opaqueDisplayCells) {
+                                 Set<String> desiredSegments, ActiveBuilding bld,
+                                 BuildingSchematic schem, Set<String> opaqueDisplayCells,
+                                 Map<String, Collection<BoundingBox>> shapeCache) {
         double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
         double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
         int intervals = Math.max(1, (int) Math.ceil(length / 0.12));
@@ -510,11 +613,11 @@ public class BuildingHudManager {
             double mid = (t0 + t1) / 2.0;
             double threeQuarter = t0 + (t1 - t0) * 0.75;
             boolean visible = isWireframePointVisible(player, world, a, dx, dy, dz, quarter,
-                    sourceX, sourceY, sourceZ, opaqueDisplayCells)
+                    sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache)
                     && isWireframePointVisible(player, world, a, dx, dy, dz, mid,
-                    sourceX, sourceY, sourceZ, opaqueDisplayCells)
+                    sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache)
                     && isWireframePointVisible(player, world, a, dx, dy, dz, threeQuarter,
-                    sourceX, sourceY, sourceZ, opaqueDisplayCells);
+                    sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache);
 
             if (visible && !visibleRun) {
                 visibleRun = true;
@@ -575,16 +678,6 @@ public class BuildingHudManager {
         playerWireframeDisplays.clear();
     }
 
-    private BlockData getWireframeBlockData(byte cellType, World world, ActiveBuilding bld,
-                                            BuildingSchematic schem, int x, int y, int z) {
-        if (cellType == TYPE_OBSTACLE) return world.getBlockAt(x, y, z).getBlockData();
-        int[] local = BuildingManager.unrotateRelativeCoords(
-                x - bld.getOriginX(), z - bld.getOriginZ(), bld.getRotationDeg(),
-                schem.getWidthX(), schem.getLengthZ());
-        SchematicBlock schematicBlock = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
-        return schematicBlock == null ? null : schematicBlock.getMaterial().createBlockData();
-    }
-
     private boolean isFullCubeShape(Collection<BoundingBox> boxes) {
         if (boxes.size() != 1) return false;
         BoundingBox box = boxes.iterator().next();
@@ -594,71 +687,39 @@ public class BuildingHudManager {
                 && box.getMaxZ() >= 1.0 - epsilon;
     }
 
-    private boolean isCrossModelPlant(Material material) {
-        String name = material.name();
-        return name.contains("FLOWER") && !name.equals("CHORUS_FLOWER")
-                && !name.equals("FLOWER_POT") && !name.startsWith("FLOWERING_")
-                || name.endsWith("_TULIP") || name.endsWith("_ORCHID")
-                || name.equals("DANDELION") || name.equals("POPPY") || name.equals("ALLIUM")
-                || name.equals("AZURE_BLUET") || name.equals("OXEYE_DAISY")
-                || name.equals("LILY_OF_THE_VALLEY") || name.equals("TORCHFLOWER")
-                || name.equals("PITCHER_PLANT") || name.equals("SHORT_GRASS")
-                || name.equals("TALL_GRASS") || name.equals("FERN") || name.equals("LARGE_FERN")
-                || name.equals("DEAD_BUSH") || name.endsWith("_SAPLING")
-                || name.endsWith("_MUSHROOM") || name.endsWith("_FUNGUS");
-    }
+    /** Shows the real Minecraft block model with a player-only glow outline. */
+    private void showBlockModelGlow(Player player, World world, String buildingId,
+                                    int blockX, int blockY, int blockZ,
+                                    BlockData blockData, Color color, Set<String> desiredDisplays) {
+        String key = "model:" + buildingId + ":" + cellKey(blockX, blockY, blockZ)
+                + ":" + blockData.getAsString() + ":" + color.getRed() + ","
+                + color.getGreen() + "," + color.getBlue();
+        if (!desiredDisplays.add(key)) return;
 
-    private void spawnShapeGlowPoint(Player player, int blockX, int blockY, int blockZ,
-                                     double localX, double localY, double localZ,
-                                     Particle.DustOptions dust) {
-        player.spawnParticle(dustParticle, blockX + localX, blockY + localY, blockZ + localZ,
-                0, 0, 0, 0, 0, dust);
-    }
+        Map<String, BlockDisplay> playerDisplays = playerWireframeDisplays.computeIfAbsent(
+                player.getUniqueId(), ignored -> new HashMap<>());
+        BlockDisplay existing = playerDisplays.get(key);
+        if (existing != null && existing.isValid() && !existing.isDead()) return;
 
-    private Color softenVolumeGlow(Color color) {
-        int neutral = 160;
-        return Color.fromRGB((color.getRed() + neutral) / 2,
-                (color.getGreen() + neutral) / 2,
-                (color.getBlue() + neutral) / 2);
-    }
-
-    /** Soft colored dust follows the two actual crossed planes used by flower/grass models. */
-    private void drawCrossModelPlantGlow(Player player, int blockX, int blockY, int blockZ, Color color) {
-        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.14f);
-        for (double u = 0.10; u <= 0.90; u += 0.20) {
-            for (double v = 0.07; v <= 0.93; v += 0.12) {
-                double along = 0.16 + u * 0.68;
-                double height = 0.04 + v * 0.84;
-                spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, along, dust);
-                spawnShapeGlowPoint(player, blockX, blockY, blockZ, along, height, 1.0 - along, dust);
-            }
-        }
-    }
-
-    /**
-     * Fills the block's own collision volume with a restrained point glow instead
-     * of drawing a cube around a partial/irregular shape.
-     */
-    private void drawCollisionVolumeGlow(Player player, int blockX, int blockY, int blockZ,
-                                         Collection<BoundingBox> boxes, Color color) {
-        Particle.DustOptions dust = new Particle.DustOptions(softenVolumeGlow(color), 0.13f);
-        Set<String> emitted = new HashSet<>();
-        final double maxSpacing = 0.28;
-        for (BoundingBox box : boxes) {
-            int countX = Math.max(1, (int) Math.ceil((box.getMaxX() - box.getMinX()) / maxSpacing));
-            int countY = Math.max(1, (int) Math.ceil((box.getMaxY() - box.getMinY()) / maxSpacing));
-            int countZ = Math.max(1, (int) Math.ceil((box.getMaxZ() - box.getMinZ()) / maxSpacing));
-            for (int ix = 0; ix < countX; ix++) {
-                double px = box.getMinX() + (ix + 0.5) * (box.getMaxX() - box.getMinX()) / countX;
-                for (int iy = 0; iy < countY; iy++) {
-                    double py = box.getMinY() + (iy + 0.5) * (box.getMaxY() - box.getMinY()) / countY;
-                    for (int iz = 0; iz < countZ; iz++) {
-                        double pz = box.getMinZ() + (iz + 0.5) * (box.getMaxZ() - box.getMinZ()) / countZ;
-                        String key = Math.round(px * 1000) + "," + Math.round(py * 1000) + "," + Math.round(pz * 1000);
-                        if (emitted.add(key)) spawnShapeGlowPoint(player, blockX, blockY, blockZ, px, py, pz, dust);
-                    }
-                }
-            }
+        try {
+            Location location = new Location(world, blockX, blockY, blockZ);
+            BlockDisplay display = world.spawn(location, BlockDisplay.class, entity -> {
+                entity.setBlock(blockData);
+                entity.setBrightness(new Display.Brightness(15, 15));
+                entity.setShadowRadius(0.0f);
+                entity.setShadowStrength(0.0f);
+                entity.setInterpolationDuration(0);
+                entity.setTeleportDuration(0);
+                entity.setGlowColorOverride(color);
+                entity.setGlowing(true);
+                entity.setInvulnerable(true);
+                entity.setPersistent(false);
+                entity.setVisibleByDefault(false);
+            });
+            player.showEntity(plugin, display);
+            playerDisplays.put(key, display);
+        } catch (Exception e) {
+            plugin.getLogger().fine("Не удалось подсветить модель блока игроку " + player.getName() + ": " + e.getMessage());
         }
     }
 
@@ -683,6 +744,7 @@ public class BuildingHudManager {
         int maxZ = minZ + effectiveLength - 1;
         int layerY = bld.getOriginY() + bld.getCurrentLayer();
         Set<String> opaqueDisplayCells = plugin.getHologramDisplayManager().getOpaqueDisplayCellKeys(world);
+        Map<String, Collection<BoundingBox>> shapeCache = new HashMap<>();
         Location eye = player.getEyeLocation();
 
         for (int x = minX; x <= maxX; x++) {
@@ -693,24 +755,21 @@ public class BuildingHudManager {
                         ? HologramDisplayManager.GLOW_RED
                         : HologramDisplayManager.GLOW_BLUE;
 
-                BlockData blockData = getWireframeBlockData(cellType, world, bld, schem, x, layerY, z);
-                if (blockData != null) {
-                    if (isCrossModelPlant(blockData.getMaterial())) {
-                        drawCrossModelPlantGlow(player, x, layerY, z, color);
+                BlockData blockData = getBlockDataAtCell(world, bld, schem, x, layerY, z, opaqueDisplayCells);
+                if (blockData == null) continue;
+                try {
+                    Collection<BoundingBox> shape = blockData.getCollisionShape(
+                            new Location(world, x, layerY, z)).getBoundingBoxes();
+                    if (shape.isEmpty() || !isFullCubeShape(shape)) {
+                        showBlockModelGlow(player, world, bld.getInstanceId(),
+                                x, layerY, z, blockData, color, desiredSegments);
                         continue;
                     }
-                    try {
-                        Collection<BoundingBox> shape = blockData.getCollisionShape(
-                                new Location(world, x, layerY, z)).getBoundingBoxes();
-                        if (shape.isEmpty()) continue;
-                        if (!isFullCubeShape(shape)) {
-                            drawCollisionVolumeGlow(player, x, layerY, z, shape, color);
-                            continue;
-                        }
-                    } catch (Exception ignored) {
-                        // If shape data is unavailable, do not incorrectly glow the enclosing cube.
-                        continue;
-                    }
+                } catch (Exception ignored) {
+                    // Use the actual block model when shape metadata cannot classify it safely.
+                    showBlockModelGlow(player, world, bld.getInstanceId(),
+                            x, layerY, z, blockData, color, desiredSegments);
+                    continue;
                 }
 
                 for (int face = 0; face < 6; face++) {
@@ -738,15 +797,15 @@ public class BuildingHudManager {
                             vertices = new double[][]{{x,layerY,z},{x,layerY+1,z},{x+1,layerY+1,z},{x+1,layerY,z}}; break;
                     }
 
-                    byte neighborType = getCellType(world, bld, schem, x + nx, layerY + ny, z + nz, opaqueDisplayCells);
-                    if (!isAirCell(neighborType)) continue;
+                    if (isFullCubeCell(world, bld, schem, x + nx, layerY + ny, z + nz,
+                            opaqueDisplayCells, shapeCache)) continue;
                     double facing = (eye.getX() - fx) * nx + (eye.getY() - fy) * ny + (eye.getZ() - fz) * nz;
                     if (facing <= 0.0001) continue;
 
                     for (int edge = 0; edge < 4; edge++) {
                         drawVisibleEdge(player, world, bld.getInstanceId(), x, layerY, z,
                                 vertices[edge], vertices[(edge + 1) % 4], color,
-                                desiredSegments, opaqueDisplayCells);
+                                desiredSegments, bld, schem, opaqueDisplayCells, shapeCache);
                     }
                 }
             }
