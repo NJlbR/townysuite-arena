@@ -601,38 +601,32 @@ public class BuildingHudManager {
         double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
         double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
         int intervals = Math.max(1, (int) Math.ceil(length / 0.12));
-        boolean visibleRun = false;
-        double runStart = 0.0;
+        double visibleRunStart = -1.0;
 
+        // Segment boundaries are tied to the block edge, not the player's ray
+        // intersection. Stable endpoints let existing displays persist between HUD ticks.
         for (int i = 0; i < intervals; i++) {
             double t0 = (double) i / intervals;
             double t1 = (double) (i + 1) / intervals;
-            // Test interior points, not exact vertices: a ray to a shared voxel
-            // boundary can touch an opaque neighbor without entering it.
-            double quarter = t0 + (t1 - t0) * 0.25;
-            double mid = (t0 + t1) / 2.0;
-            double threeQuarter = t0 + (t1 - t0) * 0.75;
-            boolean visible = isWireframePointVisible(player, world, a, dx, dy, dz, quarter,
-                    sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache)
-                    && isWireframePointVisible(player, world, a, dx, dy, dz, mid,
-                    sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache)
-                    && isWireframePointVisible(player, world, a, dx, dy, dz, threeQuarter,
+            double mid = (t0 + t1) * 0.5;
+            boolean visible = isWireframePointVisible(player, world, a, dx, dy, dz, mid,
                     sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache);
 
-            if (visible && !visibleRun) {
-                visibleRun = true;
-                runStart = t0;
-            } else if (!visible && visibleRun) {
+            if (visible && visibleRunStart < 0.0) {
+                visibleRunStart = t0;
+            } else if (!visible && visibleRunStart >= 0.0) {
                 showWireframeSegment(player, world, buildingId,
-                        new double[]{a[0] + dx * runStart, a[1] + dy * runStart, a[2] + dz * runStart},
+                        new double[]{a[0] + dx * visibleRunStart, a[1] + dy * visibleRunStart,
+                                a[2] + dz * visibleRunStart},
                         new double[]{a[0] + dx * t0, a[1] + dy * t0, a[2] + dz * t0},
                         color, desiredSegments);
-                visibleRun = false;
+                visibleRunStart = -1.0;
             }
         }
-        if (visibleRun) {
+        if (visibleRunStart >= 0.0) {
             showWireframeSegment(player, world, buildingId,
-                    new double[]{a[0] + dx * runStart, a[1] + dy * runStart, a[2] + dz * runStart},
+                    new double[]{a[0] + dx * visibleRunStart, a[1] + dy * visibleRunStart,
+                            a[2] + dz * visibleRunStart},
                     b, color, desiredSegments);
         }
     }
@@ -676,6 +670,55 @@ public class BuildingHudManager {
             }
         }
         playerWireframeDisplays.clear();
+    }
+
+    /**
+     * Glowing entities are outlined through walls by Minecraft. Only create/show a
+     * model display when at least one point on that actual block shape is visible.
+     */
+    private boolean isBlockModelVisible(Player player, World world, int blockX, int blockY, int blockZ,
+                                        Collection<BoundingBox> shape, ActiveBuilding bld,
+                                        BuildingSchematic schem, Set<String> opaqueDisplayCells,
+                                        Map<String, Collection<BoundingBox>> shapeCache) {
+        List<double[]> samples = new ArrayList<>();
+        if (shape != null && !shape.isEmpty()) {
+            for (BoundingBox box : shape) {
+                double minX = Math.min(box.getMaxX(), box.getMinX() + 0.002);
+                double maxX = Math.max(box.getMinX(), box.getMaxX() - 0.002);
+                double minY = Math.min(box.getMaxY(), box.getMinY() + 0.002);
+                double maxY = Math.max(box.getMinY(), box.getMaxY() - 0.002);
+                double minZ = Math.min(box.getMaxZ(), box.getMinZ() + 0.002);
+                double maxZ = Math.max(box.getMinZ(), box.getMaxZ() - 0.002);
+                double cx = (minX + maxX) * 0.5;
+                double cy = (minY + maxY) * 0.5;
+                double cz = (minZ + maxZ) * 0.5;
+                samples.add(new double[]{cx, cy, cz});
+                samples.add(new double[]{minX, cy, cz});
+                samples.add(new double[]{maxX, cy, cz});
+                samples.add(new double[]{cx, minY, cz});
+                samples.add(new double[]{cx, maxY, cz});
+                samples.add(new double[]{cx, cy, minZ});
+                samples.add(new double[]{cx, cy, maxZ});
+            }
+        }
+        if (samples.isEmpty()) {
+            // Plants and other zero-collision models still have a real rendered
+            // model. Their crossed planes meet around the cell's central axis.
+            samples.add(new double[]{0.5, 0.5, 0.5});
+            samples.add(new double[]{0.5, 0.2, 0.5});
+            samples.add(new double[]{0.5, 0.8, 0.5});
+            samples.add(new double[]{0.2, 0.35, 0.2});
+            samples.add(new double[]{0.8, 0.65, 0.8});
+            samples.add(new double[]{0.2, 0.35, 0.8});
+            samples.add(new double[]{0.8, 0.65, 0.2});
+        }
+
+        for (double[] sample : samples) {
+            if (hasWireframeLineOfSight(player, world,
+                    blockX + sample[0], blockY + sample[1], blockZ + sample[2],
+                    blockX, blockY, blockZ, bld, schem, opaqueDisplayCells, shapeCache)) return true;
+        }
+        return false;
     }
 
     /** Shows the real Minecraft block model with a player-only glow outline. */
@@ -748,18 +791,19 @@ public class BuildingHudManager {
 
                 BlockData blockData = getBlockDataAtCell(world, bld, schem, x, layerY, z, opaqueDisplayCells);
                 if (blockData == null) continue;
+                Collection<BoundingBox> shape;
                 try {
-                    Collection<BoundingBox> shape = blockData.getCollisionShape(
-                            new Location(world, x, layerY, z)).getBoundingBoxes();
-                    if (shape.isEmpty() || !isFullCubeShape(shape)) {
+                    shape = blockData.getCollisionShape(new Location(world, x, layerY, z)).getBoundingBoxes();
+                } catch (Exception ignored) {
+                    // Unknown shapes are treated as non-cubic; only show their actual model if visible.
+                    shape = Collections.emptyList();
+                }
+                if (shape.isEmpty() || !isFullCubeShape(shape)) {
+                    if (isBlockModelVisible(player, world, x, layerY, z, shape,
+                            bld, schem, opaqueDisplayCells, shapeCache)) {
                         showBlockModelGlow(player, world, bld.getInstanceId(),
                                 x, layerY, z, blockData, color, desiredSegments);
-                        continue;
                     }
-                } catch (Exception ignored) {
-                    // Use the actual block model when shape metadata cannot classify it safely.
-                    showBlockModelGlow(player, world, bld.getInstanceId(),
-                            x, layerY, z, blockData, color, desiredSegments);
                     continue;
                 }
 
