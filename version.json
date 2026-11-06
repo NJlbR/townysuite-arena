@@ -1,10 +1,10 @@
 {
   "major": 2,
   "minor": 8,
-  "patch": 15,
-  "version": "2.8.15",
-  "name": "TownyArchitecture-2.8.15.jar",
-  "release_name": "Actual Model Glow and Wireframe Visibility (v2.8.15)",
-  "last_updated": "2026-11-06T19:05:39.994597Z",
-  "build": 6
+  "patch": 16,
+  "version": "2.8.16",
+  "name": "TownyArchitecture-2.8.16.jar",
+  "release_name": "Stable Wireframe and Occlusion-Aware Model Glow (v2.8.16)",
+  "last_updated": "2026-11-06T19:27:37.511098Z",
+  "build": 7
 }

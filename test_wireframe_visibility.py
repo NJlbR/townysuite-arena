@@ -63,6 +63,29 @@ def ray_hits_aabb(start, end, box_min, box_max):
     return leave - enter > epsilon
 
 
+def model_visible_to_any_sample(eye, samples, occluders):
+    return any(
+        not any(ray_hits_aabb(eye, sample, box_min, box_max) for box_min, box_max in occluders)
+        for sample in samples
+    )
+
+
+def visible_runs(mask):
+    """Return edge-relative fixed-bin runs; these endpoints stay stable across camera ticks."""
+    runs, start = [], None
+    count = len(mask)
+    for index, visible in enumerate(mask):
+        t0, t1 = index / count, (index + 1) / count
+        if visible and start is None:
+            start = t0
+        elif not visible and start is not None:
+            runs.append((start, t0))
+            start = None
+    if start is not None:
+        runs.append((start, 1.0))
+    return runs
+
+
 def face_faces_viewer(normal, face_center, eye):
     return sum((eye[i] - face_center[i]) * normal[i] for i in range(3)) > 0
 
@@ -112,6 +135,21 @@ class WireframeVisibilityTests(unittest.TestCase):
         # Merely touching the shape boundary is not a positive-volume occlusion.
         self.assertFalse(ray_hits_aabb((0.25, 0.5, 0.5), (2.75, 0.5, 0.5), *lower_half))
 
+    def test_non_cubic_model_glow_is_suppressed_when_all_model_samples_are_occluded(self):
+        eye = (0.5, 1.0, 0.5)
+        samples = [(4.5, 1.2, 0.5), (4.5, 1.5, 0.5), (4.5, 1.8, 0.5)]
+        full_wall = [((2.0, 0.0, 0.0), (3.0, 3.0, 1.0))]
+        self.assertFalse(model_visible_to_any_sample(eye, samples, full_wall))
+        # If a real opening exposes any part of the model, the model can glow.
+        partial_wall = [((2.0, 0.0, 0.0), (3.0, 1.3, 1.0))]
+        self.assertTrue(model_visible_to_any_sample(eye, samples, partial_wall))
+
+    def test_wireframe_visibility_runs_use_fixed_edge_relative_bins(self):
+        mask = [True, True, False, True, True, False]
+        expected = [(0.0, 2 / 6), (3 / 6, 5 / 6)]
+        self.assertEqual(visible_runs(mask), expected)
+        self.assertEqual(visible_runs(mask), visible_runs(list(mask)))
+
     def test_hologram_occludes_line_of_sight_from_shallow_side_angle(self):
         eye = (0.25, 0.45, 0.5)
         edge = (4.0, 1.0, 0.5)
@@ -134,6 +172,10 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertIn("entity.setVisibleByDefault(false)", hud)
         self.assertIn("player.showEntity(plugin, display)", hud)
         self.assertNotIn("spawnParticle", draw)
+        self.assertIn("double mid = (t0 + t1) * 0.5", draw)
+        self.assertIn("visibleRunStart = t0", draw)
+        self.assertNotIn("quarter", draw)
+        self.assertNotIn("threeQuarter", draw)
         self.assertIn("line-thickness: 0.035", config)
 
     def test_diagonal_wireframe_displays_rotate_a_solid_rod_instead_of_stretching_texture(self):
@@ -148,7 +190,11 @@ class WireframeVisibilityTests(unittest.TestCase):
         renderer = hud[hud.index("private void renderLayerWireframes"):hud.index("public void updateHud")]
         self.assertIn("getCollisionShape(", renderer)
         self.assertIn("showBlockModelGlow", renderer)
+        self.assertIn("isBlockModelVisible(player, world, x, layerY, z, shape", renderer)
         self.assertIn("entity.setBlock(blockData)", hud)
+        visibility = hud[hud.index("private boolean isBlockModelVisible"):hud.index("private void showBlockModelGlow")]
+        self.assertIn("hasWireframeLineOfSight", visibility)
+        self.assertIn("if (isBlockModelVisible", renderer)
         self.assertIn("entity.setGlowing(true)", hud)
         self.assertIn("if (shape.isEmpty() || !isFullCubeShape(shape))", renderer)
         self.assertNotIn("drawCollisionVolumeGlow", hud)
