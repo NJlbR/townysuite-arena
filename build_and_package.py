@@ -44,7 +44,7 @@ plugin_yml_path = "tmp/minecraft-build-v2/src/main/resources/plugin.yml"
 if os.path.exists(plugin_yml_path):
     with open(plugin_yml_path, "r", encoding="utf-8") as f:
         p_yml = f.read()
-    p_yml = re.sub(r'version:\s*[^\n]+', f'version: {ver_str}', p_yml)
+    p_yml = re.sub(r'(?m)^version:\s*[^\n]+', f'version: {ver_str}', p_yml)
     with open(plugin_yml_path, "w", encoding="utf-8") as f:
         f.write(p_yml)
     print(f"Updated plugin.yml version to {ver_str}")

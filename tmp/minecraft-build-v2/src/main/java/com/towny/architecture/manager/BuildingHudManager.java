@@ -678,15 +678,6 @@ public class BuildingHudManager {
         playerWireframeDisplays.clear();
     }
 
-    private boolean isFullCubeShape(Collection<BoundingBox> boxes) {
-        if (boxes.size() != 1) return false;
-        BoundingBox box = boxes.iterator().next();
-        double epsilon = 1.0e-5;
-        return box.getMinX() <= epsilon && box.getMinY() <= epsilon && box.getMinZ() <= epsilon
-                && box.getMaxX() >= 1.0 - epsilon && box.getMaxY() >= 1.0 - epsilon
-                && box.getMaxZ() >= 1.0 - epsilon;
-    }
-
     /** Shows the real Minecraft block model with a player-only glow outline. */
     private void showBlockModelGlow(Player player, World world, String buildingId,
                                     int blockX, int blockY, int blockZ,
