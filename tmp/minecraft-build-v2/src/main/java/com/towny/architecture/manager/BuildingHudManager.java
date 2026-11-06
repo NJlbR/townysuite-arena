@@ -555,7 +555,30 @@ public class BuildingHudManager {
     private void showWireframeSegment(Player player, World world, String buildingId,
                                       double[] a, double[] b, Color color,
                                       Set<String> desiredSegments) {
-        String key = wireframeSegmentKey(buildingId, a, b, color);
+        double edgeX = b[0] - a[0], edgeY = b[1] - a[1], edgeZ = b[2] - a[2];
+        double midX = (a[0] + b[0]) * 0.5;
+        double midY = (a[1] + b[1]) * 0.5;
+        double midZ = (a[2] + b[2]) * 0.5;
+        Location eye = player.getEyeLocation();
+        double viewX = eye.getX() - midX;
+        double viewY = eye.getY() - midY;
+        double viewZ = eye.getZ() - midZ;
+
+        // Choose the face-normal axis most directly toward the viewer while
+        // keeping the rod on the same geometric edge.
+        int normalX = 0, normalY = 0, normalZ = 0;
+        if (Math.abs(edgeX) >= Math.abs(edgeY) && Math.abs(edgeX) >= Math.abs(edgeZ)) {
+            if (Math.abs(viewY) >= Math.abs(viewZ)) normalY = viewY >= 0.0 ? 1 : -1;
+            else normalZ = viewZ >= 0.0 ? 1 : -1;
+        } else if (Math.abs(edgeY) >= Math.abs(edgeZ)) {
+            if (Math.abs(viewX) >= Math.abs(viewZ)) normalX = viewX >= 0.0 ? 1 : -1;
+            else normalZ = viewZ >= 0.0 ? 1 : -1;
+        } else {
+            if (Math.abs(viewX) >= Math.abs(viewY)) normalX = viewX >= 0.0 ? 1 : -1;
+            else normalY = viewY >= 0.0 ? 1 : -1;
+        }
+        String key = wireframeSegmentKey(buildingId, a, b, color)
+                + "|view:" + normalX + "," + normalY + "," + normalZ;
         if (!desiredSegments.add(key)) return;
 
         Map<String, BlockDisplay> playerDisplays = playerWireframeDisplays.computeIfAbsent(
@@ -563,18 +586,27 @@ public class BuildingHudManager {
         BlockDisplay existing = playerDisplays.get(key);
         if (existing != null && existing.isValid() && !existing.isDead()) return;
 
-        double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+        float thickness = getWireframeThickness();
+        // Lift the solid rod just beyond its source face. Without this tiny
+        // offset, depth testing lets the hologram BlockDisplay itself cover
+        // parts of its matching edge (most noticeably on selected full cubes).
+        double surfaceOffset = thickness / 2.0 + 0.002;
+        double offsetX = normalX * surfaceOffset;
+        double offsetY = normalY * surfaceOffset;
+        double offsetZ = normalZ * surfaceOffset;
+        double ax = a[0] + offsetX, ay = a[1] + offsetY, az = a[2] + offsetZ;
+        double bx = b[0] + offsetX, by = b[1] + offsetY, bz = b[2] + offsetZ;
+        double dx = bx - ax, dy = by - ay, dz = bz - az;
         double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (length < 0.005) return;
 
-        float thickness = getWireframeThickness();
         Vector3f direction = new Vector3f((float) dx, (float) dy, (float) dz).normalize();
         Quaternionf rotation = new Quaternionf().rotationTo(new Vector3f(1.0f, 0.0f, 0.0f), direction);
         Vector3f translation = rotation.transform(new Vector3f(
                 (float) length / 2.0f, thickness / 2.0f, thickness / 2.0f)).negate();
         Vector3f scale = new Vector3f((float) length, thickness, thickness);
         Location spawnLocation = new Location(world,
-                (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0, (a[2] + b[2]) / 2.0);
+                (ax + bx) / 2.0, (ay + by) / 2.0, (az + bz) / 2.0);
 
         try {
             BlockDisplay display = world.spawn(spawnLocation, BlockDisplay.class, entity -> {
@@ -670,13 +702,23 @@ public class BuildingHudManager {
                 double cx = (minX + maxX) * 0.5;
                 double cy = (minY + maxY) * 0.5;
                 double cz = (minZ + maxZ) * 0.5;
+                double[] xs = {minX, cx, maxX};
+                double[] ys = {minY, cy, maxY};
+                double[] zs = {minZ, cz, maxZ};
+                // Test box corners as well as face centers. Narrow visible
+                // corners are common on stairs, fences and ladder models.
+                for (int ix = 0; ix < 3; ix++) {
+                    for (int iy = 0; iy < 3; iy++) {
+                        for (int iz = 0; iz < 3; iz++) {
+                            int centerAxes = (ix == 1 ? 1 : 0) + (iy == 1 ? 1 : 0) + (iz == 1 ? 1 : 0);
+                            // Keep the eight corners and six face centers; edge
+                            // centers add cost but little extra coverage.
+                            if (centerAxes == 1 || centerAxes == 3) continue;
+                            samples.add(new double[]{xs[ix], ys[iy], zs[iz]});
+                        }
+                    }
+                }
                 samples.add(new double[]{cx, cy, cz});
-                samples.add(new double[]{minX, cy, cz});
-                samples.add(new double[]{maxX, cy, cz});
-                samples.add(new double[]{cx, minY, cz});
-                samples.add(new double[]{cx, maxY, cz});
-                samples.add(new double[]{cx, cy, minZ});
-                samples.add(new double[]{cx, cy, maxZ});
             }
         }
         if (samples.isEmpty()) {
