@@ -1,10 +1,10 @@
 {
   "major": 2,
   "minor": 8,
-  "patch": 17,
-  "version": "2.8.17",
-  "name": "TownyArchitecture-2.8.17.jar",
-  "release_name": "Depth-Tested Full-Block Wireframes (v2.8.17)",
-  "last_updated": "2026-11-06T19:45:36.186664Z",
-  "build": 8
+  "patch": 18,
+  "version": "2.8.18",
+  "name": "TownyArchitecture-2.8.18.jar",
+  "release_name": "Reliable Wireframes and Rotated Block Previews (v2.8.18)",
+  "last_updated": "2026-11-06T20:23:36.205084Z",
+  "build": 10
 }
