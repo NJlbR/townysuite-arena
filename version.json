@@ -1,10 +1,10 @@
 {
   "major": 2,
   "minor": 8,
-  "patch": 16,
-  "version": "2.8.16",
-  "name": "TownyArchitecture-2.8.16.jar",
-  "release_name": "Stable Wireframe and Occlusion-Aware Model Glow (v2.8.16)",
-  "last_updated": "2026-11-06T19:27:37.511098Z",
-  "build": 7
+  "patch": 17,
+  "version": "2.8.17",
+  "name": "TownyArchitecture-2.8.17.jar",
+  "release_name": "Depth-Tested Full-Block Wireframes (v2.8.17)",
+  "last_updated": "2026-11-06T19:45:36.186664Z",
+  "build": 8
 }

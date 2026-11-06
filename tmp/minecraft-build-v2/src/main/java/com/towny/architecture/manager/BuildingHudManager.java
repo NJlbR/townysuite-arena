@@ -551,9 +551,13 @@ public class BuildingHudManager {
 
         try {
             BlockDisplay display = world.spawn(spawnLocation, BlockDisplay.class, entity -> {
-                // A flat neutral texture avoids the patterned sea-lantern pixels
-                // showing through as artificial plates on diagonal shape edges.
-                entity.setBlock(Material.WHITE_CONCRETE.createBlockData());
+                // Solid concrete avoids patterned pixels on diagonal rod edges.
+                // Full-block edge markers are real, depth-tested geometry. Do not use the
+                // entity glow outline here: Minecraft intentionally renders that through walls.
+                Material lineMaterial = color.getRed() > color.getBlue()
+                        ? Material.RED_CONCRETE
+                        : Material.LIGHT_BLUE_CONCRETE;
+                entity.setBlock(lineMaterial.createBlockData());
                 entity.setBrightness(new Display.Brightness(15, 15));
                 entity.setShadowRadius(0.0f);
                 entity.setShadowStrength(0.0f);
@@ -564,8 +568,8 @@ public class BuildingHudManager {
                         new AxisAngle4f(rotation),
                         scale,
                         new AxisAngle4f()));
-                entity.setGlowColorOverride(color);
-                entity.setGlowing(true);
+                // Intentionally no glowing outline: it is x-ray rendered by Minecraft.
+                entity.setGlowing(false);
                 entity.setInvulnerable(true);
                 entity.setPersistent(false);
                 entity.setVisibleByDefault(false);
@@ -574,60 +578,6 @@ public class BuildingHudManager {
             playerDisplays.put(key, display);
         } catch (Exception e) {
             plugin.getLogger().fine("Не удалось показать контурный сегмент игроку " + player.getName() + ": " + e.getMessage());
-        }
-    }
-
-    private boolean isWireframePointVisible(Player player, World world, double[] start,
-                                            double dx, double dy, double dz, double t,
-                                            int sourceX, int sourceY, int sourceZ,
-                                            ActiveBuilding bld, BuildingSchematic schem,
-                                            Set<String> opaqueDisplayCells,
-                                            Map<String, Collection<BoundingBox>> shapeCache) {
-        return hasWireframeLineOfSight(player, world,
-                start[0] + dx * t, start[1] + dy * t, start[2] + dz * t,
-                sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache);
-    }
-
-    /**
-     * Converts the already-culled geometric edge into a player-only glowing BlockDisplay.
-     * Visible intervals are split at occluders so a hologram can never reveal a hidden line.
-     */
-    private void drawVisibleEdge(Player player, World world, String buildingId,
-                                 int sourceX, int sourceY, int sourceZ,
-                                 double[] a, double[] b, Color color,
-                                 Set<String> desiredSegments, ActiveBuilding bld,
-                                 BuildingSchematic schem, Set<String> opaqueDisplayCells,
-                                 Map<String, Collection<BoundingBox>> shapeCache) {
-        double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
-        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        int intervals = Math.max(1, (int) Math.ceil(length / 0.12));
-        double visibleRunStart = -1.0;
-
-        // Segment boundaries are tied to the block edge, not the player's ray
-        // intersection. Stable endpoints let existing displays persist between HUD ticks.
-        for (int i = 0; i < intervals; i++) {
-            double t0 = (double) i / intervals;
-            double t1 = (double) (i + 1) / intervals;
-            double mid = (t0 + t1) * 0.5;
-            boolean visible = isWireframePointVisible(player, world, a, dx, dy, dz, mid,
-                    sourceX, sourceY, sourceZ, bld, schem, opaqueDisplayCells, shapeCache);
-
-            if (visible && visibleRunStart < 0.0) {
-                visibleRunStart = t0;
-            } else if (!visible && visibleRunStart >= 0.0) {
-                showWireframeSegment(player, world, buildingId,
-                        new double[]{a[0] + dx * visibleRunStart, a[1] + dy * visibleRunStart,
-                                a[2] + dz * visibleRunStart},
-                        new double[]{a[0] + dx * t0, a[1] + dy * t0, a[2] + dz * t0},
-                        color, desiredSegments);
-                visibleRunStart = -1.0;
-            }
-        }
-        if (visibleRunStart >= 0.0) {
-            showWireframeSegment(player, world, buildingId,
-                    new double[]{a[0] + dx * visibleRunStart, a[1] + dy * visibleRunStart,
-                            a[2] + dz * visibleRunStart},
-                    b, color, desiredSegments);
         }
     }
 
@@ -838,9 +788,10 @@ public class BuildingHudManager {
                     if (facing <= 0.0001) continue;
 
                     for (int edge = 0; edge < 4; edge++) {
-                        drawVisibleEdge(player, world, bld.getInstanceId(), x, layerY, z,
-                                vertices[edge], vertices[(edge + 1) % 4], color,
-                                desiredSegments, bld, schem, opaqueDisplayCells, shapeCache);
+                        // Keep full-block edges at their exact block-space endpoints.
+                        // The display's depth-tested body handles occlusion naturally.
+                        showWireframeSegment(player, world, bld.getInstanceId(),
+                                vertices[edge], vertices[(edge + 1) % 4], color, desiredSegments);
                     }
                 }
             }

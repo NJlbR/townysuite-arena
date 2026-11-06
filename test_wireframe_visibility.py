@@ -70,22 +70,6 @@ def model_visible_to_any_sample(eye, samples, occluders):
     )
 
 
-def visible_runs(mask):
-    """Return edge-relative fixed-bin runs; these endpoints stay stable across camera ticks."""
-    runs, start = [], None
-    count = len(mask)
-    for index, visible in enumerate(mask):
-        t0, t1 = index / count, (index + 1) / count
-        if visible and start is None:
-            start = t0
-        elif not visible and start is not None:
-            runs.append((start, t0))
-            start = None
-    if start is not None:
-        runs.append((start, 1.0))
-    return runs
-
-
 def face_faces_viewer(normal, face_center, eye):
     return sum((eye[i] - face_center[i]) * normal[i] for i in range(3)) > 0
 
@@ -144,12 +128,6 @@ class WireframeVisibilityTests(unittest.TestCase):
         partial_wall = [((2.0, 0.0, 0.0), (3.0, 1.3, 1.0))]
         self.assertTrue(model_visible_to_any_sample(eye, samples, partial_wall))
 
-    def test_wireframe_visibility_runs_use_fixed_edge_relative_bins(self):
-        mask = [True, True, False, True, True, False]
-        expected = [(0.0, 2 / 6), (3 / 6, 5 / 6)]
-        self.assertEqual(visible_runs(mask), expected)
-        self.assertEqual(visible_runs(mask), visible_runs(list(mask)))
-
     def test_hologram_occludes_line_of_sight_from_shallow_side_angle(self):
         eye = (0.25, 0.45, 0.5)
         edge = (4.0, 1.0, 0.5)
@@ -164,25 +142,31 @@ class WireframeVisibilityTests(unittest.TestCase):
 
     def test_wireframe_edges_use_bright_thin_player_only_display_lines(self):
         hud = HUD_SOURCE.read_text()
-        draw = hud[hud.index("private void drawVisibleEdge"):hud.index("private void syncWireframeDisplays")]
+        line_renderer = hud[hud.index("private void showWireframeSegment"):hud.index("private void syncWireframeDisplays")]
+        full_cube_renderer = hud[hud.index("private void renderLayerWireframes"):hud.index("public void updateHud")]
         config = (ROOT / "tmp/minecraft-build-v2/src/main/resources/config.yml").read_text()
         self.assertIn("world.spawn(spawnLocation, BlockDisplay.class", hud)
-        self.assertIn("entity.setGlowing(true)", hud)
-        self.assertIn("entity.setGlowColorOverride(color)", hud)
-        self.assertIn("entity.setVisibleByDefault(false)", hud)
-        self.assertIn("player.showEntity(plugin, display)", hud)
-        self.assertNotIn("spawnParticle", draw)
-        self.assertIn("double mid = (t0 + t1) * 0.5", draw)
-        self.assertIn("visibleRunStart = t0", draw)
-        self.assertNotIn("quarter", draw)
-        self.assertNotIn("threeQuarter", draw)
+        self.assertIn("entity.setGlowing(false)", line_renderer)
+        self.assertIn("Material.RED_CONCRETE", line_renderer)
+        self.assertIn("Material.LIGHT_BLUE_CONCRETE", line_renderer)
+        self.assertIn("entity.setVisibleByDefault(false)", line_renderer)
+        self.assertIn("player.showEntity(plugin, display)", line_renderer)
+        self.assertNotIn("spawnParticle", line_renderer)
+        self.assertIn("showWireframeSegment(player, world, bld.getInstanceId()", full_cube_renderer)
+        self.assertNotIn("drawVisibleEdge", full_cube_renderer)
+        self.assertNotIn("hasWireframeLineOfSight", line_renderer)
         self.assertIn("line-thickness: 0.035", config)
 
     def test_diagonal_wireframe_displays_rotate_a_solid_rod_instead_of_stretching_texture(self):
         hud = HUD_SOURCE.read_text()
         self.assertIn("rotationTo(new Vector3f(1.0f, 0.0f, 0.0f), direction)", hud)
         self.assertIn("rotation.transform(new Vector3f(", hud)
-        self.assertIn("entity.setBlock(Material.WHITE_CONCRETE.createBlockData())", hud)
+        line_renderer = hud[hud.index("private void showWireframeSegment"):hud.index("private void syncWireframeDisplays")]
+        model_glow = hud[hud.index("private void showBlockModelGlow"):hud.index("private void renderLayerWireframes")]
+        self.assertIn("entity.setBlock(lineMaterial.createBlockData())", line_renderer)
+        self.assertIn("entity.setGlowing(false)", line_renderer)
+        self.assertIn("entity.setBlock(blockData)", model_glow)
+        self.assertIn("entity.setGlowing(true)", model_glow)
         self.assertNotIn("entity.setBlock(Material.SEA_LANTERN.createBlockData())", hud)
 
     def test_non_cubic_models_glow_in_their_shape_without_a_cube_outline(self):
@@ -235,7 +219,9 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertIn("getOpaqueDisplayCellKeys(World world)", display)
         self.assertIn("Amanatides-Woo cell traversal", hud)
         self.assertIn("tieEpsilon", hud)
-        self.assertIn("isWireframePointVisible", hud)
+        self.assertNotIn("isWireframePointVisible", hud)
+        line_renderer = hud[hud.index("private void showWireframeSegment"):hud.index("private void syncWireframeDisplays")]
+        self.assertIn("entity.setGlowing(false)", line_renderer)
         self.assertIn("if (facing <= 0.0001) continue", hud)
         self.assertIn("isFullCubeCell(world, bld, schem", hud)
         self.assertIn("x + nx, layerY + ny, z + nz", hud)
