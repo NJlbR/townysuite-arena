@@ -88,6 +88,16 @@ def rotate_relative(dx, dz, rotation, width, length):
     return dx, dz
 
 
+def rotate_horizontal_direction(x, z, rotation):
+    if rotation == 90:
+        return z, -x
+    if rotation == 180:
+        return -x, -z
+    if rotation == 270:
+        return -z, x
+    return x, z
+
+
 class WireframeVisibilityTests(unittest.TestCase):
     def test_camera_side_selects_side_face_not_bottom(self):
         center = (0.5, 0.5, 0.5)
@@ -128,6 +138,34 @@ class WireframeVisibilityTests(unittest.TestCase):
         partial_wall = [((2.0, 0.0, 0.0), (3.0, 1.3, 1.0))]
         self.assertTrue(model_visible_to_any_sample(eye, samples, partial_wall))
 
+    def test_non_cubic_model_visibility_has_no_short_distance_cutoff(self):
+        hud = HUD_SOURCE.read_text()
+        visibility = hud[hud.index("private boolean hasWireframeLineOfSight"):hud.index("private String particlePointKey")]
+        self.assertNotIn("distance > 64.0", visibility)
+        self.assertIn("hasWireframeLineOfSight(player, world", hud)
+        self.assertIn("if (distance < 0.001) return true", visibility)
+        model_display = hud[hud.index("private void showBlockModelGlow"):hud.index("private void renderLayerWireframes")]
+        self.assertIn("entity.setViewRange(2.0f)", model_display)
+
+    def test_matching_uncompleted_blocks_keep_their_current_layer_wireframe(self):
+        hud = HUD_SOURCE.read_text()
+        cell_type = hud[hud.index("private byte getCellType"):hud.index("private BlockData getRotatedSchematicBlockData")]
+        self.assertIn("if (bld.isBlockCompleted(dx, dy, dz)) return TYPE_OTHER_LAYER", cell_type)
+        self.assertIn("if (BuildingManager.isMaterialMatch(mat, sb.getMaterial())) return TYPE_HOLOGRAM", cell_type)
+        self.assertIn("return TYPE_OBSTACLE", cell_type)
+
+    def test_partial_block_preview_uses_building_rotation(self):
+        hud = HUD_SOURCE.read_text()
+        rotation = hud[hud.index("private BlockData getRotatedSchematicBlockData"):hud.index("private BlockData getBlockDataAtCell")]
+        lookup = hud[hud.index("private BlockData getBlockDataAtCell"):hud.index("private Collection<BoundingBox> getCellCollisionBoxes")]
+        self.assertIn("StructureRotation.COUNTERCLOCKWISE_90", rotation)
+        self.assertIn("StructureRotation.CLOCKWISE_180", rotation)
+        self.assertIn("StructureRotation.CLOCKWISE_90", rotation)
+        self.assertIn("getRotatedSchematicBlockData(target, bld.getRotationDeg())", lookup)
+        self.assertEqual(rotate_horizontal_direction(0, -1, 90), (-1, 0))
+        self.assertEqual(rotate_horizontal_direction(0, -1, 180), (0, 1))
+        self.assertEqual(rotate_horizontal_direction(0, -1, 270), (1, 0))
+
     def test_hologram_occludes_line_of_sight_from_shallow_side_angle(self):
         eye = (0.25, 0.45, 0.5)
         edge = (4.0, 1.0, 0.5)
@@ -149,6 +187,7 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertIn("entity.setGlowing(false)", line_renderer)
         self.assertIn("Material.RED_CONCRETE", line_renderer)
         self.assertIn("Material.LIGHT_BLUE_CONCRETE", line_renderer)
+        self.assertIn("entity.setViewRange(2.0f)", line_renderer)
         self.assertIn("entity.setVisibleByDefault(false)", line_renderer)
         self.assertIn("player.showEntity(plugin, display)", line_renderer)
         self.assertNotIn("spawnParticle", line_renderer)

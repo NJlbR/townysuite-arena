@@ -15,6 +15,7 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
@@ -331,13 +332,37 @@ public class BuildingHudManager {
         if (insideFootprint) {
             SchematicBlock sb = schem.getBlock(dx, dy, dz);
             if (sb != null) {
-                if (bld.isBlockCompleted(dx, dy, dz) || BuildingManager.isMaterialMatch(mat, sb.getMaterial())) {
-                    return TYPE_OTHER_LAYER;
-                }
+                if (bld.isBlockCompleted(dx, dy, dz)) return TYPE_OTHER_LAYER;
+                // A correct physical block that has not yet been reconciled as
+                // completed still belongs to the active layer and needs its edge.
+                if (BuildingManager.isMaterialMatch(mat, sb.getMaterial())) return TYPE_HOLOGRAM;
                 return TYPE_OBSTACLE;
             }
         }
         return TYPE_OBSTACLE;
+    }
+
+    /**
+     * Schematic entries store materials rather than block-state properties, so
+     * rotate their default BlockData into the building's world orientation.
+     * BuildingManager's positive rotation is counter-clockwise around Y.
+     */
+    private BlockData getRotatedSchematicBlockData(SchematicBlock schematicBlock, int rotationDeg) {
+        BlockData data = schematicBlock.getMaterial().createBlockData();
+        switch (Math.floorMod(rotationDeg, 360)) {
+            case 90:
+                data.rotate(StructureRotation.COUNTERCLOCKWISE_90);
+                break;
+            case 180:
+                data.rotate(StructureRotation.CLOCKWISE_180);
+                break;
+            case 270:
+                data.rotate(StructureRotation.CLOCKWISE_90);
+                break;
+            default:
+                break;
+        }
+        return data;
     }
 
     private BlockData getBlockDataAtCell(World world, ActiveBuilding bld, BuildingSchematic schem,
@@ -353,7 +378,7 @@ public class BuildingHudManager {
                 schem.getWidthX(), schem.getLengthZ());
         SchematicBlock target = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
         if (target != null && !bld.isBlockCompleted(local[0], y - bld.getOriginY(), local[1])) {
-            return target.getMaterial().createBlockData();
+            return getRotatedSchematicBlockData(target, bld.getRotationDeg());
         }
         // A stale/non-schematic display has no model metadata available here.
         return null;
@@ -470,7 +495,9 @@ public class BuildingHudManager {
         double ox = eye.getX(), oy = eye.getY(), oz = eye.getZ();
         double dx = x - ox, dy = y - oy, dz = z - oz;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (distance > 64.0) return false;
+        // Keep model glow available throughout the active building area. The
+        // renderer already bounds buildings spatially, so a short arbitrary
+        // ray-distance cutoff made valid previews vanish while backing away.
         if (distance < 0.001) return true;
         int bx = (int) Math.floor(ox), by = (int) Math.floor(oy), bz = (int) Math.floor(oz);
         double invX = dx == 0.0 ? Double.POSITIVE_INFINITY : Math.abs(1.0 / dx);
@@ -559,6 +586,7 @@ public class BuildingHudManager {
                         : Material.LIGHT_BLUE_CONCRETE;
                 entity.setBlock(lineMaterial.createBlockData());
                 entity.setBrightness(new Display.Brightness(15, 15));
+                entity.setViewRange(2.0f);
                 entity.setShadowRadius(0.0f);
                 entity.setShadowStrength(0.0f);
                 entity.setInterpolationDuration(0);
@@ -690,6 +718,7 @@ public class BuildingHudManager {
             BlockDisplay display = world.spawn(location, BlockDisplay.class, entity -> {
                 entity.setBlock(blockData);
                 entity.setBrightness(new Display.Brightness(15, 15));
+                entity.setViewRange(2.0f);
                 entity.setShadowRadius(0.0f);
                 entity.setShadowStrength(0.0f);
                 entity.setInterpolationDuration(0);
