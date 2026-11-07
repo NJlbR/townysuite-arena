@@ -395,17 +395,28 @@ public class BuildingHudManager {
         if (!world.isChunkLoaded(x >> 4, z >> 4)) {
             return Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1));
         }
-        BlockData data = getBlockDataAtCell(world, bld, schem, x, y, z, opaqueDisplayCells);
+        org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+        Material material = block.getType();
+        boolean physicalOccupancy = !material.isAir() && material != Material.WATER && material != Material.LAVA;
+        boolean displayOccupancy = opaqueDisplayCells.contains(key);
         Collection<BoundingBox> boxes;
-        if (data == null) {
-            boxes = opaqueDisplayCells.contains(key)
-                    ? Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1))
-                    : Collections.emptyList();
+        if (!physicalOccupancy && !displayOccupancy) {
+            // A schematic block in a future/unspawned layer is not an occluder.
+            boxes = Collections.emptyList();
         } else {
-            try {
-                boxes = data.getCollisionShape(new Location(world, x, y, z)).getBoundingBoxes();
-            } catch (Exception ignored) {
-                boxes = Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1));
+            BlockData data = physicalOccupancy
+                    ? block.getBlockData()
+                    : getBlockDataAtCell(world, bld, schem, x, y, z, opaqueDisplayCells);
+            if (data == null) {
+                boxes = displayOccupancy
+                        ? Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1))
+                        : Collections.emptyList();
+            } else {
+                try {
+                    boxes = data.getCollisionShape(new Location(world, x, y, z)).getBoundingBoxes();
+                } catch (Exception ignored) {
+                    boxes = Collections.singletonList(new BoundingBox(0, 0, 0, 1, 1, 1));
+                }
             }
         }
         shapeCache.put(key, boxes);
@@ -425,7 +436,8 @@ public class BuildingHudManager {
                                    int x, int y, int z, Set<String> opaqueDisplayCells,
                                    Map<String, Collection<BoundingBox>> shapeCache) {
         if (y < world.getMinHeight() || y >= world.getMaxHeight()) return false;
-        if (!world.isChunkLoaded(x >> 4, z >> 4)) return true;
+        // Unknown cells must not suppress an otherwise visible face.
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
         return isFullCubeShape(getCellCollisionBoxes(world, bld, schem, x, y, z,
                 opaqueDisplayCells, shapeCache));
     }

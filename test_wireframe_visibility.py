@@ -269,6 +269,10 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertIn("entity.setGlowing(false)", line_renderer)
         self.assertIn("if (facing <= 0.0001) continue", hud)
         self.assertIn("isFullCubeCell(world, bld, schem", hud)
+        neighbor_culling = hud[hud.index("private boolean isFullCubeCell"):hud.index("private boolean rayIntersectsBox")]
+        self.assertIn("if (!world.isChunkLoaded(x >> 4, z >> 4)) return false", neighbor_culling)
+        collision_boxes = hud[hud.index("private Collection<BoundingBox> getCellCollisionBoxes"):hud.index("private boolean isFullCubeShape")]
+        self.assertIn("if (!physicalOccupancy && !displayOccupancy)", collision_boxes)
         self.assertIn("x + nx, layerY + ny, z + nz", hud)
         self.assertIn("rayIntersectsBox(ox, oy, oz", hud)
         self.assertIn("getCollisionShape(", hud)
