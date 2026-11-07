@@ -8,6 +8,8 @@ import org.bukkit.*;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
@@ -57,6 +59,25 @@ public class HologramDisplayManager {
                 new Vector3f(scale, scale, scale),
                 new AxisAngle4f()
         );
+    }
+
+    /** Applies the same structure orientation to preview data and HUD model overlays. */
+    public BlockData getRotatedSchematicBlockData(SchematicBlock schematicBlock, int rotationDeg) {
+        BlockData data = schematicBlock.getMaterial().createBlockData();
+        switch (Math.floorMod(rotationDeg, 360)) {
+            case 90:
+                data.rotate(StructureRotation.COUNTERCLOCKWISE_90);
+                break;
+            case 180:
+                data.rotate(StructureRotation.CLOCKWISE_180);
+                break;
+            case 270:
+                data.rotate(StructureRotation.CLOCKWISE_90);
+                break;
+            default:
+                break;
+        }
+        return data;
     }
 
     /**
@@ -140,7 +161,7 @@ public class HologramDisplayManager {
                         entity.setBlock(worldBlock.getBlockData());
                         entity.setGlowColorOverride(GLOW_RED);
                     } else {
-                        entity.setBlock(sb.getMaterial().createBlockData());
+                        entity.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                         entity.setGlowColorOverride(GLOW_BLUE);
                     }
                     entity.setBrightness(getConfiguredBrightness());
@@ -440,7 +461,7 @@ public class HologramDisplayManager {
                         disp.setBlock(worldBlock.getBlockData());
                         disp.setGlowColorOverride(GLOW_RED);
                     } else {
-                        disp.setBlock(sb.getMaterial().createBlockData());
+                        disp.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                         disp.setGlowColorOverride(GLOW_BLUE);
                     }
                     disp.setTransformation(createBlockTransformation());
@@ -524,7 +545,7 @@ public class HologramDisplayManager {
                         existing.setBlock(worldBlock.getBlockData());
                         existing.setGlowColorOverride(GLOW_RED);
                     } else {
-                        existing.setBlock(sb.getMaterial().createBlockData());
+                        existing.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                         existing.setGlowColorOverride(GLOW_BLUE);
                     }
                     existing.setTransformation(createBlockTransformation());
@@ -643,7 +664,7 @@ public class HologramDisplayManager {
                         existing.setBlock(worldBlock.getBlockData());
                         existing.setGlowColorOverride(GLOW_RED);
                     } else {
-                        existing.setBlock(sb.getMaterial().createBlockData());
+                        existing.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                         existing.setGlowColorOverride(GLOW_BLUE);
                     }
                     existing.setTransformation(createBlockTransformation());
@@ -662,7 +683,7 @@ public class HologramDisplayManager {
                     entity.setBlock(worldBlock.getBlockData());
                     entity.setGlowColorOverride(GLOW_RED);
                 } else {
-                    entity.setBlock(sb.getMaterial().createBlockData());
+                    entity.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                     entity.setGlowColorOverride(GLOW_BLUE);
                 }
                 entity.setBrightness(getConfiguredBrightness());

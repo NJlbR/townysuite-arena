@@ -15,7 +15,6 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
@@ -45,6 +44,64 @@ public class BuildingHudManager {
 
     public BuildingHudManager(TownyArchitecturePlugin plugin) {
         this.plugin = plugin;
+    }
+
+    /** Updates edge displays independently and more frequently than ambient particles. */
+    public void renderWireframes() {
+        if (!plugin.getConfig().getBoolean("settings.hologram.wireframe.enabled", true)) {
+            clearWireframeDisplays();
+            return;
+        }
+
+        Collection<ActiveBuilding> activeBuildings = plugin.getBuildingManager().getActiveBuildings();
+        Map<World, Set<String>> opaqueCellsByWorld = new IdentityHashMap<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!hasParticlesEnabled(player)) {
+                clearWireframeDisplays(player);
+                continue;
+            }
+            World world = player.getWorld();
+            if (world == null) {
+                clearWireframeDisplays(player);
+                continue;
+            }
+
+            Location playerLocation = player.getLocation();
+            double playerX = playerLocation.getX();
+            double playerZ = playerLocation.getZ();
+            Set<String> desiredSegments = new HashSet<>();
+            Set<String> opaqueDisplayCells = null;
+
+            for (ActiveBuilding building : activeBuildings) {
+                if (building.getStatus() != ActiveBuilding.Status.CONSTRUCTING
+                        || !world.getName().equals(building.getWorldName())
+                        || building.getAssignedChunks().isEmpty()
+                        || plugin.getBuildingManager().getBlueprint(building.getBlueprintId()) == null) continue;
+
+                int minChunkX = Integer.MAX_VALUE, maxChunkX = Integer.MIN_VALUE;
+                int minChunkZ = Integer.MAX_VALUE, maxChunkZ = Integer.MIN_VALUE;
+                for (ChunkCoord chunk : building.getAssignedChunks()) {
+                    minChunkX = Math.min(minChunkX, chunk.getX());
+                    maxChunkX = Math.max(maxChunkX, chunk.getX());
+                    minChunkZ = Math.min(minChunkZ, chunk.getZ());
+                    maxChunkZ = Math.max(maxChunkZ, chunk.getZ());
+                }
+                double minX = (minChunkX << 4) - 48.0;
+                double maxX = ((maxChunkX + 1) << 4) + 48.0;
+                double minZ = (minChunkZ << 4) - 48.0;
+                double maxZ = ((maxChunkZ + 1) << 4) + 48.0;
+                if (playerX < minX || playerX > maxX || playerZ < minZ || playerZ > maxZ) continue;
+
+                BuildingSchematic schematic = plugin.getSchematicManager().getSchematic(building.getBlueprintId());
+                if (schematic == null) continue;
+                if (opaqueDisplayCells == null) {
+                    opaqueDisplayCells = opaqueCellsByWorld.computeIfAbsent(world,
+                            plugin.getHologramDisplayManager()::getOpaqueDisplayCellKeys);
+                }
+                renderLayerWireframes(player, world, building, schematic, desiredSegments, opaqueDisplayCells);
+            }
+            syncWireframeDisplays(player, desiredSegments);
+        }
     }
 
     public boolean hasParticlesEnabled(Player player) {
@@ -115,8 +172,6 @@ public class BuildingHudManager {
                 clearWireframeDisplays(player);
                 continue;
             }
-            Set<String> desiredWireframeSegments = new HashSet<>();
-
             double pX = pLoc.getX();
             double pY = pLoc.getY();
             double pZ = pLoc.getZ();
@@ -148,16 +203,6 @@ public class BuildingHudManager {
                     renderSolidLine(player, pWorld, bMinX, bMaxX, bMinZ, bMaxZ, pX, pY, pZ, footprintCyanDust);
                 }
 
-                // Hologram & Obstacle layer wireframe edge highlighting (4-cell adjacency rule)
-                if (showBorders && wireframeEnabled && bld.getStatus() == ActiveBuilding.Status.CONSTRUCTING) {
-                    BuildingSchematic schem = plugin.getSchematicManager().getSchematic(bld.getBlueprintId());
-                    if (schem != null) {
-                        if (pX >= bMinX - 48 && pX <= bMaxX + 48 && pZ >= bMinZ - 48 && pZ <= bMaxZ + 48) {
-                            renderLayerWireframes(player, pWorld, bld, schem, desiredWireframeSegments);
-                        }
-                    }
-                }
-
                 // C. Buff Zone boundary for 1x1 buildings (Clean, thin, continuous glowing line)
                 if (showEffects && bp.getChunkWidth() == 1 && bp.getChunkLength() == 1) {
                     double effMinX = (minCX - radiusChunks) << 4;
@@ -178,8 +223,6 @@ public class BuildingHudManager {
                     }
                 }
             }
-
-            syncWireframeDisplays(player, desiredWireframeSegments);
 
             // 2. Render designated town build plots (Vivid Aqua / Sky Blue - NO yellow!)
             if (showBorders) {
@@ -342,29 +385,6 @@ public class BuildingHudManager {
         return TYPE_OBSTACLE;
     }
 
-    /**
-     * Schematic entries store materials rather than block-state properties, so
-     * rotate their default BlockData into the building's world orientation.
-     * BuildingManager's positive rotation is counter-clockwise around Y.
-     */
-    private BlockData getRotatedSchematicBlockData(SchematicBlock schematicBlock, int rotationDeg) {
-        BlockData data = schematicBlock.getMaterial().createBlockData();
-        switch (Math.floorMod(rotationDeg, 360)) {
-            case 90:
-                data.rotate(StructureRotation.COUNTERCLOCKWISE_90);
-                break;
-            case 180:
-                data.rotate(StructureRotation.CLOCKWISE_180);
-                break;
-            case 270:
-                data.rotate(StructureRotation.CLOCKWISE_90);
-                break;
-            default:
-                break;
-        }
-        return data;
-    }
-
     private BlockData getBlockDataAtCell(World world, ActiveBuilding bld, BuildingSchematic schem,
                                          int x, int y, int z, Set<String> opaqueDisplayCells) {
         if (y < world.getMinHeight() || y >= world.getMaxHeight()) return null;
@@ -378,7 +398,7 @@ public class BuildingHudManager {
                 schem.getWidthX(), schem.getLengthZ());
         SchematicBlock target = schem.getBlock(local[0], y - bld.getOriginY(), local[1]);
         if (target != null && !bld.isBlockCompleted(local[0], y - bld.getOriginY(), local[1])) {
-            return getRotatedSchematicBlockData(target, bld.getRotationDeg());
+            return plugin.getHologramDisplayManager().getRotatedSchematicBlockData(target, bld.getRotationDeg());
         }
         // A stale/non-schematic display has no model metadata available here.
         return null;
@@ -795,7 +815,8 @@ public class BuildingHudManager {
      * geometric face/visibility calculation, not a fixed top-plane wireframe.
      */
     private void renderLayerWireframes(Player player, World world, ActiveBuilding bld,
-                                       BuildingSchematic schem, Set<String> desiredSegments) {
+                                       BuildingSchematic schem, Set<String> desiredSegments,
+                                       Set<String> opaqueDisplayCells) {
         if (bld.getStatus() != ActiveBuilding.Status.CONSTRUCTING) return;
 
         int effectiveWidth = schem.getWidthX();
@@ -810,7 +831,6 @@ public class BuildingHudManager {
         int minZ = bld.getOriginZ();
         int maxZ = minZ + effectiveLength - 1;
         int layerY = bld.getOriginY() + bld.getCurrentLayer();
-        Set<String> opaqueDisplayCells = plugin.getHologramDisplayManager().getOpaqueDisplayCellKeys(world);
         Map<String, Collection<BoundingBox>> shapeCache = new HashMap<>();
         Location eye = player.getEyeLocation();
 
