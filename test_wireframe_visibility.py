@@ -222,7 +222,7 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertIn("entity.setBlock(lineMaterial.createBlockData())", line_renderer)
         self.assertIn("entity.setGlowing(false)", line_renderer)
         self.assertIn("entity.setBlock(blockData)", model_glow)
-        self.assertIn("entity.setTransformation(plugin.getHologramDisplayManager().createBlockTransformation())", model_glow)
+        self.assertIn("entity.setTransformation(plugin.getHologramDisplayManager().createBlockTransformation(entity.getBlock(), blockX, blockZ))", model_glow)
         self.assertIn("entity.setGlowing(true)", model_glow)
         self.assertNotIn("entity.setBlock(Material.SEA_LANTERN.createBlockData())", hud)
 
