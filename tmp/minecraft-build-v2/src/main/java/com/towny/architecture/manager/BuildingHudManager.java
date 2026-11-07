@@ -797,6 +797,9 @@ public class BuildingHudManager {
                 entity.setShadowStrength(0.0f);
                 entity.setInterpolationDuration(0);
                 entity.setTeleportDuration(0);
+                // Match the schematic hologram's exact transform so plant model
+                // offsets and directional geometry overlay the same prototype.
+                entity.setTransformation(plugin.getHologramDisplayManager().createBlockTransformation());
                 entity.setGlowColorOverride(color);
                 entity.setGlowing(true);
                 entity.setInvulnerable(true);
