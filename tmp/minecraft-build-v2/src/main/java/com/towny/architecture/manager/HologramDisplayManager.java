@@ -48,17 +48,45 @@ public class HologramDisplayManager {
      * Creates transformation with exact offset and scale (1.008) for full-size seamless blocks.
      */
     public Transformation createBlockTransformation() {
+        return createBlockTransformation(null, 0, 0);
+    }
+
+    /**
+     * Matches vanilla's coordinate-seeded XZ model offset for small and tall flowers.
+     * BlockDisplay does not inherit the offset of the real world block automatically,
+     * so apply it to the display pose using the block's world X/Z coordinates.
+     */
+    public Transformation createBlockTransformation(BlockData data, int blockX, int blockZ) {
         float scale = (float) plugin.getConfig().getDouble("settings.hologram.scale", 1.008);
         if (scale <= 0.5f || scale > 1.2f) {
             scale = 1.008f;
         }
-        float offset = (1.0f - scale) / 2.0f;
+        double flowerOffsetX = 0.0;
+        double flowerOffsetZ = 0.0;
+        if (data != null && (Tag.SMALL_FLOWERS.isTagged(data.getMaterial())
+                || Tag.TALL_FLOWERS.isTagged(data.getMaterial()))) {
+            // Mirrors Mth.getSeed(x, 0, z), including Java long overflow.
+            long seed = (long) (blockX * 3129871) ^ (long) blockZ * 116129781L;
+            seed = seed * seed * 42317861L + seed * 11L;
+            float xFraction = (float) (seed >> 16 & 15L) / 15.0F;
+            float zFraction = (float) (seed >> 24 & 15L) / 15.0F;
+            flowerOffsetX = ((double) xFraction - 0.5D) * 0.5D;
+            flowerOffsetZ = ((double) zFraction - 0.5D) * 0.5D;
+        }
+        float scaleOffset = (1.0f - scale) / 2.0f;
         return new Transformation(
-                new Vector3f(offset, offset, offset),
+                new Vector3f(scaleOffset + (float) flowerOffsetX, scaleOffset,
+                        scaleOffset + (float) flowerOffsetZ),
                 new AxisAngle4f(),
                 new Vector3f(scale, scale, scale),
                 new AxisAngle4f()
         );
+    }
+
+    private void applyBlockTransformation(BlockDisplay display) {
+        Location location = display.getLocation();
+        display.setTransformation(createBlockTransformation(
+                display.getBlock(), location.getBlockX(), location.getBlockZ()));
     }
 
     /** Applies the same structure orientation to preview data and HUD model overlays. */
@@ -170,7 +198,7 @@ public class HologramDisplayManager {
                     entity.setInterpolationDuration(0);
                     entity.setTeleportDuration(0);
                     
-                    entity.setTransformation(createBlockTransformation());
+                    applyBlockTransformation(entity);
                     entity.setGlowing(false);
                     entity.setInvulnerable(true);
                     
@@ -224,7 +252,7 @@ public class HologramDisplayManager {
                             entity.setShadowStrength(0f);
                             entity.setInterpolationDuration(0);
                             entity.setTeleportDuration(0);
-                            entity.setTransformation(createBlockTransformation());
+                            applyBlockTransformation(entity);
                             entity.setGlowing(false);
                             entity.setInvulnerable(true);
                             entity.getPersistentDataContainer().set(hologramKey, PersistentDataType.STRING, bld.getInstanceId());
@@ -395,6 +423,7 @@ public class HologramDisplayManager {
                         if (disp != null && disp.isValid()) {
                             disp.setBlock(worldBlock.getBlockData());
                             disp.setGlowColorOverride(GLOW_RED);
+                            applyBlockTransformation(disp);
                         }
                     } else {
                         // Newly placed foreign block in footprint: spawn glowing red obstacle
@@ -408,7 +437,7 @@ public class HologramDisplayManager {
                                 entity.setShadowStrength(0f);
                                 entity.setInterpolationDuration(0);
                                 entity.setTeleportDuration(0);
-                                entity.setTransformation(createBlockTransformation());
+                                applyBlockTransformation(entity);
                                 entity.setGlowing(false);
                                 entity.setInvulnerable(true);
                                 entity.getPersistentDataContainer().set(hologramKey, PersistentDataType.STRING, bld.getInstanceId());
@@ -464,7 +493,7 @@ public class HologramDisplayManager {
                         disp.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                         disp.setGlowColorOverride(GLOW_BLUE);
                     }
-                    disp.setTransformation(createBlockTransformation());
+                    applyBlockTransformation(disp);
                 } catch (Throwable ignored) {}
                 return;
             }
@@ -548,7 +577,7 @@ public class HologramDisplayManager {
                         existing.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                         existing.setGlowColorOverride(GLOW_BLUE);
                     }
-                    existing.setTransformation(createBlockTransformation());
+                    applyBlockTransformation(existing);
                 } catch (Throwable ignored) {}
             }
         }
@@ -596,7 +625,7 @@ public class HologramDisplayManager {
                                 entity.setShadowStrength(0f);
                                 entity.setInterpolationDuration(0);
                                 entity.setTeleportDuration(0);
-                                entity.setTransformation(createBlockTransformation());
+                                applyBlockTransformation(entity);
                                 entity.setGlowing(false);
                                 entity.setInvulnerable(true);
                                 entity.getPersistentDataContainer().set(hologramKey, PersistentDataType.STRING, bld.getInstanceId());
@@ -609,7 +638,7 @@ public class HologramDisplayManager {
                         try {
                             existing.setBlock(worldBlock.getBlockData());
                             existing.setGlowColorOverride(GLOW_RED);
-                            existing.setTransformation(createBlockTransformation());
+                            applyBlockTransformation(existing);
                         } catch (Throwable ignored) {}
                     }
                 }
@@ -667,7 +696,7 @@ public class HologramDisplayManager {
                         existing.setBlock(getRotatedSchematicBlockData(sb, bld.getRotationDeg()));
                         existing.setGlowColorOverride(GLOW_BLUE);
                     }
-                    existing.setTransformation(createBlockTransformation());
+                    applyBlockTransformation(existing);
                 } catch (Throwable ignored) {}
                 return;
             } else {
@@ -692,7 +721,7 @@ public class HologramDisplayManager {
                 entity.setInterpolationDuration(0);
                 entity.setTeleportDuration(0);
                 
-                entity.setTransformation(createBlockTransformation());
+                applyBlockTransformation(entity);
                 entity.setGlowing(false);
                 entity.setInvulnerable(true);
                 
