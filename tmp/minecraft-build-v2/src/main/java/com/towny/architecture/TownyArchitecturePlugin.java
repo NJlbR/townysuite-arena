@@ -50,6 +50,7 @@ public class TownyArchitecturePlugin extends JavaPlugin implements Listener {
     private BukkitTask hudTask;
     private BukkitTask integrityTask;
     private BukkitTask particleTask;
+    private BukkitTask wireframeTask;
 
     @Override
     public void onEnable() {
@@ -107,6 +108,14 @@ public class TownyArchitecturePlugin extends JavaPlugin implements Listener {
             }
         }, 20L, 10L);
 
+        wireframeTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            try {
+                buildingHudManager.renderWireframes();
+            } catch (Throwable t) {
+                // Keep high-frequency wireframe refreshes isolated from other plugin tasks.
+            }
+        }, 20L, 2L);
+
         int watchdogInterval = getConfig().getInt("settings.watchdog-interval-seconds", 30);
         integrityTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
             buildingManager.performWatchdogAudit();
@@ -121,6 +130,7 @@ public class TownyArchitecturePlugin extends JavaPlugin implements Listener {
         if (hudTask != null) hudTask.cancel();
         if (integrityTask != null) integrityTask.cancel();
         if (particleTask != null) particleTask.cancel();
+        if (wireframeTask != null) wireframeTask.cancel();
         
         if (buildingHudManager != null) buildingHudManager.clearAll();
         if (hologramDisplayManager != null) hologramDisplayManager.clearAll();

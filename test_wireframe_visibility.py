@@ -149,19 +149,21 @@ class WireframeVisibilityTests(unittest.TestCase):
 
     def test_matching_uncompleted_blocks_keep_their_current_layer_wireframe(self):
         hud = HUD_SOURCE.read_text()
-        cell_type = hud[hud.index("private byte getCellType"):hud.index("private BlockData getRotatedSchematicBlockData")]
+        cell_type = hud[hud.index("private byte getCellType"):hud.index("private BlockData getBlockDataAtCell")]
         self.assertIn("if (bld.isBlockCompleted(dx, dy, dz)) return TYPE_OTHER_LAYER", cell_type)
         self.assertIn("if (BuildingManager.isMaterialMatch(mat, sb.getMaterial())) return TYPE_HOLOGRAM", cell_type)
         self.assertIn("return TYPE_OBSTACLE", cell_type)
 
     def test_partial_block_preview_uses_building_rotation(self):
         hud = HUD_SOURCE.read_text()
-        rotation = hud[hud.index("private BlockData getRotatedSchematicBlockData"):hud.index("private BlockData getBlockDataAtCell")]
+        display = DISPLAY_SOURCE.read_text()
+        rotation = display[display.index("public BlockData getRotatedSchematicBlockData"):display.index("public void initHologramsForBuilding")]
         lookup = hud[hud.index("private BlockData getBlockDataAtCell"):hud.index("private Collection<BoundingBox> getCellCollisionBoxes")]
         self.assertIn("StructureRotation.COUNTERCLOCKWISE_90", rotation)
         self.assertIn("StructureRotation.CLOCKWISE_180", rotation)
         self.assertIn("StructureRotation.CLOCKWISE_90", rotation)
         self.assertIn("getRotatedSchematicBlockData(target, bld.getRotationDeg())", lookup)
+        self.assertEqual(display.count("getRotatedSchematicBlockData(sb, bld.getRotationDeg())"), 5)
         self.assertEqual(rotate_horizontal_direction(0, -1, 90), (-1, 0))
         self.assertEqual(rotate_horizontal_direction(0, -1, 180), (0, 1))
         self.assertEqual(rotate_horizontal_direction(0, -1, 270), (1, 0))
@@ -198,6 +200,18 @@ class WireframeVisibilityTests(unittest.TestCase):
         self.assertNotIn("drawVisibleEdge", full_cube_renderer)
         self.assertNotIn("hasWireframeLineOfSight", line_renderer)
         self.assertIn("line-thickness: 0.035", config)
+
+    def test_wireframes_refresh_faster_than_ambient_particles_without_double_rendering(self):
+        plugin = (ROOT / "tmp/minecraft-build-v2/src/main/java/com/towny/architecture/TownyArchitecturePlugin.java").read_text()
+        hud = HUD_SOURCE.read_text()
+        self.assertIn("buildingHudManager.renderWireframes()", plugin)
+        self.assertIn("}, 20L, 2L);", plugin[plugin.index("wireframeTask ="):plugin.index("int watchdogInterval")])
+        self.assertIn("}, 20L, 10L);", plugin[plugin.index("particleTask ="):plugin.index("wireframeTask =")])
+        particles = hud[hud.index("public void renderParticles"):hud.index("private void renderSolidLine")]
+        wireframes = hud[hud.index("public void renderWireframes"):hud.index("public boolean hasParticlesEnabled")]
+        self.assertNotIn("renderLayerWireframes", particles)
+        self.assertIn("renderLayerWireframes", wireframes)
+        self.assertIn("opaqueCellsByWorld.computeIfAbsent", wireframes)
 
     def test_diagonal_wireframe_displays_rotate_a_solid_rod_instead_of_stretching_texture(self):
         hud = HUD_SOURCE.read_text()
@@ -260,7 +274,7 @@ class WireframeVisibilityTests(unittest.TestCase):
     def test_production_renderer_uses_exposed_faces_and_registry_occlusion(self):
         hud = HUD_SOURCE.read_text()
         display = DISPLAY_SOURCE.read_text()
-        self.assertIn("getOpaqueDisplayCellKeys(world)", hud)
+        self.assertIn("getOpaqueDisplayCellKeys", hud)
         self.assertIn("getOpaqueDisplayCellKeys(World world)", display)
         self.assertIn("Amanatides-Woo cell traversal", hud)
         self.assertIn("tieEpsilon", hud)

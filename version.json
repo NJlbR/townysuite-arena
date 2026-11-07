@@ -1,10 +1,10 @@
 {
   "major": 2,
   "minor": 8,
-  "patch": 20,
-  "version": "2.8.20",
-  "name": "TownyArchitecture-2.8.20.jar",
-  "release_name": "Top-Edge Visibility Fix (v2.8.20)",
-  "last_updated": "2026-11-07T16:36:39.556070Z",
-  "build": 13
+  "patch": 21,
+  "version": "2.8.21",
+  "name": "TownyArchitecture-2.8.21.jar",
+  "release_name": "Fast Wireframes and Aligned Block Previews (v2.8.21)",
+  "last_updated": "2026-11-07T17:05:52.206764Z",
+  "build": 15
 }
