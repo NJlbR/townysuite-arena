@@ -4,6 +4,7 @@ import { RESOURCE_PACK_BASE64 } from '../data/resourcePackBase64';
 import { UNBLOCKER_JAR_BASE64, UNBLOCKER_BUNDLE_BASE64, UNBLOCKER_METADATA } from '../data/unblockerData';
 import { TOWNY_SIEGES_JAR_BASE64, TOWNY_SIEGES_BUNDLE_BASE64, TOWNY_SIEGES_METADATA } from '../data/townySiegesData';
 import { TOWNY_RESPAWN_JAR_BASE64, TOWNY_RESPAWN_BUNDLE_BASE64, TOWNY_RESPAWN_METADATA } from '../data/townyRespawnData';
+import { TOWNY_JOBS_METADATA } from '../data/townyJobsData';
 import { CANNON_BBMODEL_BASE64, CANNON_JSON_BASE64, CANNON_VANILLA_JSON_BASE64, CANNON_CUSTOM_JSON_BASE64, CANNON_WOOD_PNG_BASE64, CANNON_METAL_PNG_BASE64, CANNON_RP_BASE64, CANNON_METADATA } from '../data/cannonModelData';
 
 import { SUITE_ALL_PLUGINS_ZIP_BASE64 } from '../data/suiteZipBase64';
@@ -222,6 +223,25 @@ export function downloadCannonRp(filename = CANNON_METADATA.fileRpName): boolean
     window.location.href = publicAssetUrl(filename);
     return false;
   }
+}
+
+/** Downloads the standalone TownyJobs release assets served from the site public directory. */
+export function downloadTownyJobsJar(filename = TOWNY_JOBS_METADATA.jarFileName): boolean {
+  return downloadPublicTownyJobsAsset(filename);
+}
+
+export function downloadTownyJobsBundle(filename = TOWNY_JOBS_METADATA.bundleFileName): boolean {
+  return downloadPublicTownyJobsAsset(filename);
+}
+
+function downloadPublicTownyJobsAsset(filename: string): boolean {
+  const link = document.createElement('a');
+  link.href = publicAssetUrl(filename);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  return true;
 }
 
 /**
