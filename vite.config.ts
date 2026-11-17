@@ -17,6 +17,8 @@ export default defineConfig(() => {
       },
     },
     server: {
+      // Permit the Arena preview proxy host while keeping the allowlist scoped to its domain.
+      allowedHosts: ['.e2b.app'],
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

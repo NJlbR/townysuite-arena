@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Download, Check, Copy, Shield, Server, Box, Sparkles, Terminal, Zap, Flame, Map, Layers, CheckCircle2, ArrowDownToLine, PackageCheck, ExternalLink, Bed } from 'lucide-react';
+import { Download, Check, Copy, Shield, Server, Box, Sparkles, Terminal, Zap, Flame, Map, Layers, CheckCircle2, ArrowDownToLine, PackageCheck, ExternalLink, Bed, BriefcaseBusiness } from 'lucide-react';
 import { TOWNY_RESPAWN_METADATA } from '../data/townyRespawnData';
 import { TOWNY_SIEGES_METADATA } from '../data/townySiegesData';
 import { UNBLOCKER_METADATA } from '../data/unblockerData';
 import { PLUGIN_METADATA_V2 } from '../data/javaSources';
+import { TOWNY_JOBS_METADATA } from '../data/townyJobsData';
 import {
+  downloadTownyJobsJar,
+  downloadTownyJobsBundle,
   downloadTownyRespawnJar,
   downloadTownyRespawnBundle,
   downloadTownySiegesJar,
@@ -17,7 +20,7 @@ import {
 } from '../utils/downloadHelpers';
 
 interface PluginCardData {
-  id: 'respawn' | 'sieges' | 'unblocker' | 'architecture';
+  id: 'respawn' | 'sieges' | 'unblocker' | 'architecture' | 'jobs';
   name: string;
   version: string;
   releaseDate: string;
@@ -39,7 +42,7 @@ interface PluginCardData {
 }
 
 export const PluginsDownloadHub: React.FC = () => {
-  const [filter, setFilter] = useState<'all' | 'respawn' | 'sieges' | 'unblocker' | 'architecture'>('all');
+  const [filter, setFilter] = useState<'all' | 'respawn' | 'sieges' | 'unblocker' | 'architecture' | 'jobs'>('all');
   const [copiedSha, setCopiedSha] = useState<string | null>(null);
   const [downloadedPlugin, setDownloadedPlugin] = useState<string | null>(null);
 
@@ -152,6 +155,33 @@ export const PluginsDownloadHub: React.FC = () => {
       onDownloadBundle: () => downloadUnblockerBundle()
     },
     {
+      id: 'jobs',
+      name: 'TownyJobs',
+      version: TOWNY_JOBS_METADATA.version,
+      releaseDate: TOWNY_JOBS_METADATA.releaseDate,
+      category: 'Роли города & зарплаты',
+      badgeText: 'НОВЫЙ ПЛАГИН',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      accentBorder: 'border-emerald-500/50 hover:border-emerald-400',
+      accentBg: 'from-emerald-950/40 via-neutral-900 to-teal-950/30',
+      iconBg: 'bg-emerald-400 text-neutral-950',
+      icon: <BriefcaseBusiness className="w-5 h-5" />,
+      jarFileName: TOWNY_JOBS_METADATA.jarFileName,
+      jarSize: TOWNY_JOBS_METADATA.jarSize,
+      sha256: TOWNY_JOBS_METADATA.jarSha256,
+      description: 'Самостоятельный плагин рабочих ролей для Towny: мэр назначает жителей на должности и настраивает выплаты и права через /t jobs. Ежедневный payroll учитывает оффлайн-жителей и выплачивает зарплаты из казны города.',
+      highlights: [
+        'Ежедневные выплаты жителям, включая оффлайн-игроков; если казны не хватает, городской payroll за день пропускается целиком',
+        'Управление ролями, зарплатами, назначениями и правами мэром через меню /t jobs',
+        'Поддержка Towny ranks и настраиваемых permissions для каждой роли',
+        'Квота строителей засчитывает только корректно размещённые блоки активных проектов TownyArchitecture; без него квота отключена',
+        'Отдельный плагин: TownyJobs не изменяет Towny или другие плагины TownySuite'
+      ],
+      dependencies: ['Paper 1.20+', 'Towny', 'TownyArchitecture (опц.)'],
+      onDownloadJar: () => downloadTownyJobsJar(),
+      onDownloadBundle: () => downloadTownyJobsBundle()
+    },
+    {
       id: 'architecture',
       name: 'TownyArchitecture',
       version: PLUGIN_METADATA_V2.version,
@@ -204,8 +234,7 @@ export const PluginsDownloadHub: React.FC = () => {
               Готовые скомпилированные .JAR плагины для вашего сервера
             </h1>
             <p className="text-neutral-300 text-sm sm:text-base leading-relaxed">
-              Все 4 взаимосвязанных плагина протестированы, скомпилированы и готовы к загрузке в папку <code className="px-1.5 py-0.5 rounded bg-neutral-800 text-amber-300 font-mono text-xs">/plugins/</code> на ядре Paper 1.20+.
-              Скачайте полный комплект одним нажатием или выберите нужные компоненты ниже.
+              Пять отдельных .JAR-плагинов доступны для Paper 1.20+. Архив комплекта ниже содержит четыре основных плагина; новый TownyJobs скачивается отдельно. Поместите выбранные JAR-файлы в папку <code className="px-1.5 py-0.5 rounded bg-neutral-800 text-amber-300 font-mono text-xs">/plugins/</code>.
             </p>
           </div>
 
@@ -223,7 +252,7 @@ export const PluginsDownloadHub: React.FC = () => {
                   <Check className="w-3.5 h-3.5" /> Архив TownySuite-All-Plugins.zip загружен!
                 </span>
               ) : (
-                'TownyRespawn, TownySieges, Unblocker, Architecture в одном архиве'
+                'Архив включает TownyRespawn, TownySieges, Unblocker и Architecture; TownyJobs скачивается отдельно ниже'
               )}
             </div>
           </div>
@@ -272,6 +301,16 @@ export const PluginsDownloadHub: React.FC = () => {
             }`}
           >
             TownyExplosionUnblocker
+          </button>
+          <button
+            onClick={() => setFilter('jobs')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              filter === 'jobs'
+                ? 'bg-emerald-400 text-neutral-950 shadow-sm'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            TownyJobs (Работы)
           </button>
           <button
             onClick={() => setFilter('architecture')}
