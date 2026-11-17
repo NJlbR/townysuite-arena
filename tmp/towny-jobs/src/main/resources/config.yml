@@ -1,0 +1,26 @@
+# TownyJobs stores town salaries, toggles, role membership, builder work counts,
+# and payroll dates in jobs-data.yml. Configure role-specific Towny ranks and
+# Bukkit permission nodes here.
+roles:
+  assistant_mayor:
+    display-name: "Помощник мэра"
+    icon: GOLDEN_HELMET
+    towny-rank: assistant
+    permissions:
+      - townyjobs.role.assistant_mayor
+  builder:
+    display-name: "Строитель"
+    icon: DIAMOND_PICKAXE
+    towny-rank: builder
+    permissions:
+      - townyjobs.role.builder
+  treasurer:
+    display-name: "Казначей"
+    icon: GOLD_INGOT
+    towny-rank: ""
+    permissions:
+      - townyjobs.role.treasurer
+
+builder-quota-role: builder
+default-builder-daily-quota: 100
+menu-title: "Работы города"

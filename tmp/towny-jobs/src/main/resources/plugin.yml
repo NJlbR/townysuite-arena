@@ -1,0 +1,31 @@
+name: TownyJobs
+version: 1.0.0
+main: com.towny.jobs.TownyJobsPlugin
+api-version: '1.20'
+author: TownyArchitectureTeam
+description: Town-managed roles, daily town-funded salaries, and construction quotas
+load: POSTWORLD
+depend: [Towny]
+softdepend: [TownyArchitecture]
+commands:
+  townyjobs:
+    description: Open the town jobs menu
+    aliases: [tjobs]
+    usage: /townyjobs [reload]
+    permission: townyjobs.use
+permissions:
+  townyjobs.use:
+    description: Open the TownyJobs town menu
+    default: true
+  townyjobs.admin:
+    description: Reload TownyJobs and administer the plugin
+    default: op
+  townyjobs.role.assistant_mayor:
+    description: Assigned town assistant mayor job role
+    default: false
+  townyjobs.role.builder:
+    description: Assigned town builder job role
+    default: false
+  townyjobs.role.treasurer:
+    description: Assigned town treasurer job role
+    default: false
